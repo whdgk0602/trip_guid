@@ -8,6 +8,8 @@ export default function ListPage() {
   const [values, setValues] = useState<string[]>([]);
 
   useEffect(() => {
+    // localStorage isn't available during SSR, so it must be read after mount
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setValues(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]"));
   }, []);
 
