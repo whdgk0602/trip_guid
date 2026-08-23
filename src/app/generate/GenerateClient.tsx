@@ -41,23 +41,130 @@ export default function GenerateClient({ text }: { text: string }) {
   }, [text]);
 
   if (!course) {
-    return <p>{phaseText}</p>;
+    const isBuildingPhase = phaseText !== "주변 장소 찾는 중";
+
+    return (
+      <div className="flex min-h-screen flex-col bg-[#16332E] text-[#F2FAF6]">
+        <header className="flex h-[76px] items-center border-b border-[rgba(242,250,246,0.12)] px-6 lg:px-14">
+          <span className="text-[17px] font-bold">동네 큐레이터</span>
+        </header>
+
+        <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 lg:gap-11">
+          <div className="flex gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#3FBFA3] [animation:pulse_1.4s_infinite]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#3FBFA3] [animation:pulse_1.4s_infinite_.2s]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#3FBFA3] [animation:pulse_1.4s_infinite_.4s]" />
+          </div>
+
+          <div className="flex max-w-[720px] flex-col items-center gap-4 text-center">
+            <h1 className="text-[28px] leading-[1.3] font-bold tracking-[-.008em] lg:text-[38px] lg:tracking-[-.012em]">
+              주변 장소를 찾고 있어요
+            </h1>
+            <p className="text-[14px] leading-[1.7] text-[#9EB4AD] lg:text-[16px] lg:leading-[1.8]">
+              입력하신 경로에서 지명을 읽고 있습니다. 보통 10초 안에 끝나요.
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center gap-4 lg:flex-row lg:gap-0">
+            <div className="flex items-center gap-3 lg:pr-7">
+              <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#3FBFA3] text-[12px] font-bold text-[#16332E]">
+                ✓
+              </span>
+              <span className="text-[14.5px] lg:text-[15px]">
+                경로에서 장소 읽기
+              </span>
+            </div>
+            <div className="hidden h-px w-14 bg-[rgba(242,250,246,0.24)] lg:block" />
+            <div className="flex items-center gap-3 lg:px-7">
+              <span
+                className={`flex h-[22px] w-[22px] items-center justify-center rounded-full border-2 ${
+                  isBuildingPhase
+                    ? "border-[rgba(242,250,246,0.25)]"
+                    : "border-[#3FBFA3]"
+                }`}
+              />
+              <span
+                className={`text-[14.5px] lg:text-[15px] ${
+                  isBuildingPhase ? "text-[#75918B]" : "font-bold"
+                }`}
+              >
+                주변 장소 찾기
+              </span>
+            </div>
+            <div className="hidden h-px w-14 bg-[rgba(242,250,246,0.24)] lg:block" />
+            <div className="flex items-center gap-3 lg:pl-7">
+              <span
+                className={`flex h-[22px] w-[22px] items-center justify-center rounded-full border-2 ${
+                  isBuildingPhase
+                    ? "border-[#3FBFA3]"
+                    : "border-[rgba(242,250,246,0.25)]"
+                }`}
+              />
+              <span
+                className={`text-[14.5px] lg:text-[15px] ${
+                  isBuildingPhase ? "font-bold" : "text-[#75918B]"
+                }`}
+              >
+                코스 만들기
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 pb-8 text-[13px] text-[#75918B] lg:px-14 lg:pb-10">
+          창을 닫으면 생성이 중단됩니다.
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="flex w-full max-w-md flex-col gap-4 p-4">
-      <h1 className="text-xl font-bold break-words">{course.title}</h1>
-      <p className="break-words">{course.intro}</p>
-      <ul className="flex flex-col gap-3">
-        {course.spots.map((spot) => (
-          <li key={spot.id} className="rounded-lg border p-3">
-            <p className="font-medium break-words">
-              {spot.name} ({spot.category})
+    <div className="flex min-h-screen flex-col bg-[#FDFDFB] text-[#26332F]">
+      <header className="flex h-[76px] items-center justify-between border-b border-[rgba(38,51,47,0.1)] px-6 lg:px-14">
+        <span className="text-[17px] font-bold">동네 큐레이터</span>
+        <span className="text-[13px] text-[#5C6B66] lg:text-[13.5px]">
+          무료 등급 · 스팟 {course.spots.length}개
+        </span>
+      </header>
+
+      <main className="flex flex-1 flex-col items-center px-6 py-9 lg:px-0 lg:py-[72px]">
+        <div className="flex w-full max-w-[720px] flex-col gap-6 lg:gap-[30px]">
+          <div className="flex flex-col gap-3 lg:gap-4">
+            <h1 className="text-[27px] leading-[1.24] font-bold tracking-[-.012em] break-words lg:text-[48px] lg:leading-[1.2] lg:tracking-[-.016em]">
+              {course.title}
+            </h1>
+            <p className="text-[13.5px] leading-[1.75] text-[#4C5B56] break-words lg:text-[17px] lg:leading-[1.85]">
+              {course.intro}
             </p>
-            <p className="break-words text-sm">{spot.description}</p>
-          </li>
-        ))}
-      </ul>
+          </div>
+          <div className="h-px bg-[rgba(38,51,47,0.14)]" />
+          <ul className="flex flex-col gap-2.5 lg:gap-4">
+            {course.spots.map((spot, i) => (
+              <li
+                key={spot.id}
+                className="flex gap-3.5 rounded-[16px] border border-[rgba(38,51,47,0.14)] bg-white p-3.5 lg:gap-[22px] lg:p-[26px]"
+              >
+                <span className="font-archivo text-2xl leading-none text-[#E8623C] lg:text-[30px]">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <div className="flex flex-col gap-1.5 lg:gap-2">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="text-[16.5px] font-bold tracking-[-.008em] break-words lg:text-[20px]">
+                      {spot.name}
+                    </span>
+                    <span className="rounded-full border border-[rgba(38,51,47,0.2)] px-2 py-0.5 text-[11.5px] text-[#7C8D87] lg:text-[12px]">
+                      {spot.category}
+                    </span>
+                  </div>
+                  <p className="text-[13.5px] leading-[1.75] text-[#5C6B66] break-words lg:text-[15px] lg:leading-[1.8]">
+                    {spot.description}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </main>
     </div>
   );
 }

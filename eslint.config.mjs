@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Design handoff reference bundle, not shipped product code.
+    "MVP_DESIGN/**",
   ]),
 ]);
 

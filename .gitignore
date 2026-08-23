@@ -39,6 +39,9 @@ yarn-error.log*
 # claude code
 .claude
 
+# design handoff (reference only, not shipped)
+/MVP_DESIGN
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
