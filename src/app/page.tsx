@@ -1,9 +1,29 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+
+const STORAGE_KEY = "saved-routes";
+
 export default function Home() {
+  const [value, setValue] = useState("");
+
+  function handleSave() {
+    if (!value) return;
+    const existing = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+    existing.push(value);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+    setValue("");
+  }
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <h1 className="text-3xl font-semibold text-black dark:text-zinc-50">
-        Hello My Project
-      </h1>
+    <div>
+      <p>경로를 입력해주세요 (예: 출근길에 대림역에서 2호선 갈아타고 강남역에서 내려요)</p>
+      <input value={value} onChange={(e) => setValue(e.target.value)} />
+      <button onClick={handleSave}>저장</button>
+      <p>
+        <Link href="/my">내가 만든 코스 보기</Link>
+      </p>
     </div>
   );
 }
