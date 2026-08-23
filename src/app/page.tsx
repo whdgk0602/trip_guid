@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 const STORAGE_KEY = "saved-routes";
@@ -21,7 +22,7 @@ export default function Home() {
       <input value={value} onChange={(e) => setValue(e.target.value)} />
       <button onClick={handleSave}>저장</button>
       <p>
-        <a href="/my">내가 만든 코스 보기</a>
+        <Link href="/my">내가 만든 코스 보기</Link>
       </p>
     </div>
   );

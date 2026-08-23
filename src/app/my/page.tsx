@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "saved-routes";
@@ -22,7 +23,7 @@ export default function MyPage() {
         ))}
       </ul>
       <p>
-        <a href="/">경로 입력하러 가기</a>
+        <Link href="/">경로 입력하러 가기</Link>
       </p>
     </div>
   );
