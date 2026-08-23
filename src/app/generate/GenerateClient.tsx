@@ -45,16 +45,16 @@ export default function GenerateClient({ text }: { text: string }) {
   }
 
   return (
-    <div>
-      <h1>{course.title}</h1>
-      <p>{course.intro}</p>
-      <ul>
+    <div className="flex w-full max-w-md flex-col gap-4 p-4">
+      <h1 className="text-xl font-bold break-words">{course.title}</h1>
+      <p className="break-words">{course.intro}</p>
+      <ul className="flex flex-col gap-3">
         {course.spots.map((spot) => (
-          <li key={spot.id}>
-            <p>
+          <li key={spot.id} className="rounded-lg border p-3">
+            <p className="font-medium break-words">
               {spot.name} ({spot.category})
             </p>
-            <p>{spot.description}</p>
+            <p className="break-words text-sm">{spot.description}</p>
           </li>
         ))}
       </ul>
