@@ -22,7 +22,7 @@ export default function MyPage() {
         ))}
       </ul>
       <p>
-        <a href="/input">경로 입력하러 가기</a>
+        <a href="/">경로 입력하러 가기</a>
       </p>
     </div>
   );
