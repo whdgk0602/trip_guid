@@ -2,6 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { getLoadingPhaseText } from "./loadingPhase";
+import SaveModal from "./SaveModal";
+import { getOrCreateAnonymousId } from "@/lib/anonymousId";
+import {
+  addSavedRoute,
+  loadSavedRoutes,
+  persistSavedRoutes,
+  type Visibility,
+} from "@/lib/savedRoutes";
 
 type Spot = {
   id: string;
@@ -20,6 +28,15 @@ type Course = {
 export default function GenerateClient({ text }: { text: string }) {
   const [phaseText, setPhaseText] = useState(() => getLoadingPhaseText(0));
   const [course, setCourse] = useState<Course | null>(null);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+
+  function handleSave(visibility: Visibility) {
+    if (!course) return;
+    const anonymousId = getOrCreateAnonymousId(localStorage);
+    const existing = loadSavedRoutes(localStorage, anonymousId);
+    const updated = addSavedRoute(existing, course, visibility);
+    persistSavedRoutes(localStorage, anonymousId, updated);
+  }
 
   useEffect(() => {
     const startedAt = Date.now();
@@ -122,10 +139,25 @@ export default function GenerateClient({ text }: { text: string }) {
     <div className="flex min-h-screen flex-col bg-[#FDFDFB] text-[#26332F]">
       <header className="flex h-[76px] items-center justify-between border-b border-[rgba(38,51,47,0.1)] px-6 lg:px-14">
         <span className="text-[17px] font-bold">동네 큐레이터</span>
-        <span className="text-[13px] text-[#5C6B66] lg:text-[13.5px]">
-          무료 등급 · 스팟 {course.spots.length}개
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-[13px] text-[#5C6B66] lg:text-[13.5px]">
+            무료 등급 · 스팟 {course.spots.length}개
+          </span>
+          <button
+            onClick={() => setIsSaveModalOpen(true)}
+            className="rounded-full border border-[rgba(38,51,47,0.28)] px-4 py-2 text-[13.5px] font-bold"
+          >
+            저장하기
+          </button>
+        </div>
       </header>
+
+      {isSaveModalOpen && (
+        <SaveModal
+          onSave={handleSave}
+          onClose={() => setIsSaveModalOpen(false)}
+        />
+      )}
 
       <main className="flex flex-1 flex-col items-center px-6 py-9 lg:px-0 lg:py-[72px]">
         <div className="flex w-full max-w-[720px] flex-col gap-6 lg:gap-[30px]">
