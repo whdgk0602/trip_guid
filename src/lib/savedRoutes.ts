@@ -50,6 +50,18 @@ export function setSavedRouteVisibility(
   );
 }
 
+export type VisibilityFilter = "all" | Visibility;
+
+export function filterRoutesByVisibility(
+  routes: SavedRoute[],
+  filter: VisibilityFilter,
+): SavedRoute[] {
+  if (filter === "all") {
+    return routes;
+  }
+  return routes.filter((route) => route.visibility === filter);
+}
+
 export function loadSavedRoutes(
   storage: Pick<RoutesStorage, "getItem">,
   anonymousId: string,

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   addSavedRoute,
+  filterRoutesByVisibility,
   loadSavedRoutes,
   persistSavedRoutes,
   setSavedRouteVisibility,
@@ -70,6 +71,50 @@ describe("setSavedRouteVisibility", () => {
     const result = setSavedRouteVisibility(routes, routes[0].id, "public");
 
     expect(result[1].visibility).toBe("private");
+  });
+});
+
+describe("filterRoutesByVisibility", () => {
+  test("returns all routes when filter is 'all'", () => {
+    const routes = addSavedRoute(
+      addSavedRoute([], course, "public"),
+      course,
+      "private",
+    );
+
+    expect(filterRoutesByVisibility(routes, "all")).toEqual(routes);
+  });
+
+  test("returns only public routes when filter is 'public'", () => {
+    const routes = addSavedRoute(
+      addSavedRoute([], course, "public"),
+      course,
+      "private",
+    );
+
+    const result = filterRoutesByVisibility(routes, "public");
+
+    expect(result).toHaveLength(1);
+    expect(result[0].visibility).toBe("public");
+  });
+
+  test("returns only private routes when filter is 'private'", () => {
+    const routes = addSavedRoute(
+      addSavedRoute([], course, "public"),
+      course,
+      "private",
+    );
+
+    const result = filterRoutesByVisibility(routes, "private");
+
+    expect(result).toHaveLength(1);
+    expect(result[0].visibility).toBe("private");
+  });
+
+  test("returns an empty array when no routes match the filter", () => {
+    const routes = addSavedRoute([], course, "public");
+
+    expect(filterRoutesByVisibility(routes, "private")).toEqual([]);
   });
 });
 
