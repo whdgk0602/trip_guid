@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getLoadingPhaseText } from "./loadingPhase";
 import SaveModal from "./SaveModal";
+import ShareModal from "./ShareModal";
 import { getOrCreateAnonymousId } from "@/lib/anonymousId";
 import {
   addSavedRoute,
@@ -29,6 +30,7 @@ export default function GenerateClient({ text }: { text: string }) {
   const [phaseText, setPhaseText] = useState(() => getLoadingPhaseText(0));
   const [course, setCourse] = useState<Course | null>(null);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   function handleSave(visibility: Visibility) {
     if (!course) return;
@@ -144,6 +146,12 @@ export default function GenerateClient({ text }: { text: string }) {
             무료 등급 · 스팟 {course.spots.length}개
           </span>
           <button
+            onClick={() => setIsShareModalOpen(true)}
+            className="rounded-full border border-[rgba(38,51,47,0.28)] px-4 py-2 text-[13.5px] font-bold"
+          >
+            공유하기
+          </button>
+          <button
             onClick={() => setIsSaveModalOpen(true)}
             className="rounded-full border border-[rgba(38,51,47,0.28)] px-4 py-2 text-[13.5px] font-bold"
           >
@@ -156,6 +164,13 @@ export default function GenerateClient({ text }: { text: string }) {
         <SaveModal
           onSave={handleSave}
           onClose={() => setIsSaveModalOpen(false)}
+        />
+      )}
+
+      {isShareModalOpen && (
+        <ShareModal
+          course={course}
+          onClose={() => setIsShareModalOpen(false)}
         />
       )}
 
