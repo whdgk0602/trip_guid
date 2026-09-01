@@ -5,6 +5,7 @@ import {
   loadSavedRoutes,
   persistSavedRoutes,
   setSavedRouteVisibility,
+  sortRoutesByNewest,
 } from "./savedRoutes";
 
 const course = {
@@ -115,6 +116,35 @@ describe("filterRoutesByVisibility", () => {
     const routes = addSavedRoute([], course, "public");
 
     expect(filterRoutesByVisibility(routes, "private")).toEqual([]);
+  });
+});
+
+describe("sortRoutesByNewest", () => {
+  test("orders routes by createdAt descending", () => {
+    const routes = [
+      { ...course, id: "a", visibility: "public" as const, createdAt: "2026-01-01T00:00:00.000Z" },
+      { ...course, id: "b", visibility: "public" as const, createdAt: "2026-03-01T00:00:00.000Z" },
+      { ...course, id: "c", visibility: "public" as const, createdAt: "2026-02-01T00:00:00.000Z" },
+    ];
+
+    const result = sortRoutesByNewest(routes);
+
+    expect(result.map((r) => r.id)).toEqual(["b", "c", "a"]);
+  });
+
+  test("does not mutate the input array", () => {
+    const routes = [
+      { ...course, id: "a", visibility: "public" as const, createdAt: "2026-01-01T00:00:00.000Z" },
+      { ...course, id: "b", visibility: "public" as const, createdAt: "2026-03-01T00:00:00.000Z" },
+    ];
+
+    sortRoutesByNewest(routes);
+
+    expect(routes.map((r) => r.id)).toEqual(["a", "b"]);
+  });
+
+  test("returns an empty array when given no routes", () => {
+    expect(sortRoutesByNewest([])).toEqual([]);
   });
 });
 

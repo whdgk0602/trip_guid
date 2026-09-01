@@ -62,6 +62,12 @@ export function filterRoutesByVisibility(
   return routes.filter((route) => route.visibility === filter);
 }
 
+export function sortRoutesByNewest(routes: SavedRoute[]): SavedRoute[] {
+  return [...routes].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+}
+
 export function loadSavedRoutes(
   storage: Pick<RoutesStorage, "getItem">,
   anonymousId: string,

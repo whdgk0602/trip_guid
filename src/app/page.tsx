@@ -23,9 +23,14 @@ export default function Home() {
     <div className="flex min-h-screen flex-col bg-[#FDFDFB] text-[#26332F]">
       <header className="flex h-[76px] items-center justify-between border-b border-[rgba(38,51,47,0.1)] px-6 lg:px-14">
         <span className="text-[17px] font-bold tracking-[-.008em]">동네 큐레이터</span>
-        <Link href="/my" className="text-[14.5px] font-bold">
-          내 코스
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/gallery" className="text-[14.5px] font-bold">
+            갤러리
+          </Link>
+          <Link href="/my" className="text-[14.5px] font-bold">
+            내 코스
+          </Link>
+        </div>
       </header>
 
       <main className="flex flex-1 flex-col items-center px-6 pt-11 lg:px-0 lg:pt-[92px]">
