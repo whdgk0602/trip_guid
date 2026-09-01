@@ -66,120 +66,191 @@ export default function CourseDetailPage() {
 
   if (!route) {
     return (
-      <div className="flex min-h-screen flex-col bg-[#FDFDFB] p-6 text-[#26332F]">
-        <p>코스를 찾을 수 없어요</p>
-        <p className="mt-4">
-          <Link href="/my">내 코스로 돌아가기</Link>
-        </p>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#FDFDFB] px-6 text-center text-[#26332F]">
+        <p className="text-[16px] text-[#5C6B66]">코스를 찾을 수 없어요</p>
+        <Link href="/my" className="text-[14px] font-bold">
+          내 코스로 돌아가기
+        </Link>
       </div>
     );
   }
 
   const complete = isRouteComplete(route.spots, checkins);
   const checkinCount = checkins.length;
+  const progressPct = Math.round((checkinCount / route.spots.length) * 100);
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#FDFDFB] p-6 text-[#26332F]">
-      <p className="text-[19px] font-bold">{route.title}</p>
+    <div className="flex min-h-screen flex-col bg-[#FDFDFB] text-[#26332F]">
+      <header className="flex h-[76px] items-center justify-between border-b border-[rgba(38,51,47,0.1)] px-6 lg:px-14">
+        <Link href="/" className="text-[17px] font-bold tracking-[-.008em]">
+          동네 큐레이터
+        </Link>
+        {tier === "premium" && (
+          <span className="rounded-full bg-[rgba(232,98,60,0.14)] px-3 py-1.5 text-[12px] font-bold text-[#B14324]">
+            프리미엄
+          </span>
+        )}
+      </header>
 
-      {tier !== "premium" ? (
-        <div className="mt-4 rounded-[14px] border border-[rgba(38,51,47,0.14)] p-4">
-          <p className="text-[14px] text-[#5C6B66]">
-            체크인 + AI 여행기는 프리미엄 전용 기능이에요
-          </p>
-          <p className="mt-2">
-            <Link href="/plan" className="font-bold">
-              프리미엄 알아보기 →
-            </Link>
-          </p>
-        </div>
-      ) : (
-        <>
-          <ul className="mt-4 flex flex-col gap-3">
-            {route.spots.map((spot) => {
-              const checkin = checkins.find((c) => c.spotId === spot.id);
-              return (
-                <li
-                  key={spot.id}
-                  className="rounded-[14px] border border-[rgba(38,51,47,0.14)] p-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold">{spot.name}</span>
-                    <span className="text-[12px] text-[#5C6B66]">
-                      {checkin ? "체크인 완료" : "미완료"}
-                    </span>
-                  </div>
-                  {checkin ? (
-                    <p className="mt-2 text-[13.5px] text-[#5C6B66]">
-                      {checkin.note}
-                    </p>
-                  ) : (
-                    <div className="mt-2 flex flex-col gap-2">
-                      <input
-                        value={draftNotes[spot.id] ?? ""}
-                        onChange={(e) =>
-                          setDraftNotes((prev) => ({
-                            ...prev,
-                            [spot.id]: e.target.value,
-                          }))
-                        }
-                        placeholder="한 줄 기록을 남겨보세요"
-                        className="rounded-lg border border-[rgba(38,51,47,0.2)] px-3 py-2 text-[13.5px]"
-                      />
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) =>
-                          handlePhotoChange(spot.id, e.target.files?.[0] ?? null)
-                        }
-                      />
-                      {draftPhotos[spot.id] && (
-                        // eslint-disable-next-line @next/next/no-img-element -- session-only blob: preview, not a static asset
-                        <img
-                          src={draftPhotos[spot.id]}
-                          alt=""
-                          className="h-20 w-20 rounded-lg object-cover"
-                        />
-                      )}
-                      <button
-                        onClick={() => handleCheckin(spot.id)}
-                        className="w-fit rounded-lg bg-[#26332F] px-4 py-1.5 text-[13px] font-bold text-white"
-                      >
-                        체크인
-                      </button>
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-
-          <div className="mt-6">
-            {travelogue ? (
-              <div className="rounded-[14px] border border-[rgba(38,51,47,0.14)] bg-white p-4">
-                <p className="font-bold">나의 여행기</p>
-                <p className="mt-2 whitespace-pre-line text-[13.5px] leading-[1.75] text-[#4C5B56]">
-                  {travelogue}
+      <main className="flex flex-1 flex-col items-center px-6 py-14 lg:px-0">
+        <div className="flex w-full max-w-[720px] flex-col gap-7">
+          {tier !== "premium" ? (
+            <>
+              <h1 className="text-[28px] font-bold tracking-[-.012em] break-words lg:text-[36px]">
+                {route.title}
+              </h1>
+              <div className="rounded-2xl border border-[rgba(38,51,47,0.14)] bg-white p-6">
+                <p className="text-[14.5px] text-[#5C6B66]">
+                  체크인 + AI 여행기는 프리미엄 전용 기능이에요
                 </p>
+                <Link
+                  href="/plan"
+                  className="mt-3 inline-block text-[14px] font-bold"
+                >
+                  프리미엄 알아보기 →
+                </Link>
               </div>
-            ) : (
-              <button
-                onClick={handleGenerateTravelogue}
-                disabled={!complete}
-                className="rounded-xl bg-[#26332F] px-6 py-2 text-sm font-bold text-white disabled:opacity-40"
-              >
-                {complete
-                  ? "여행기 생성"
-                  : `여행기 생성 (${checkinCount}/${route.spots.length} 체크인 완료)`}
-              </button>
-            )}
-          </div>
-        </>
-      )}
+            </>
+          ) : (
+            <>
+              <div className="flex flex-col gap-3">
+                <span className="font-archivo text-[12px] tracking-[.28em] text-[#E8623C] uppercase">
+                  Check-in · {route.spots.length}곳 중 {checkinCount}곳 완료
+                </span>
+                <h1 className="text-[28px] leading-[1.24] font-bold tracking-[-.014em] break-words lg:text-[36px]">
+                  {route.title}
+                </h1>
+                <div className="mt-1.5 h-[5px] rounded-full bg-[rgba(38,51,47,0.12)]">
+                  <div
+                    className="h-[5px] rounded-full bg-[#E8623C] transition-all"
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+              </div>
 
-      <p className="mt-8">
-        <Link href="/my">내 코스로 돌아가기</Link>
-      </p>
+              <div className="flex flex-col gap-3.5">
+                {route.spots.map((spot) => {
+                  const checkin = checkins.find((c) => c.spotId === spot.id);
+                  if (checkin) {
+                    return (
+                      <div
+                        key={spot.id}
+                        className="flex items-start gap-5 rounded-2xl border border-[rgba(38,51,47,0.14)] bg-white p-6"
+                      >
+                        <span className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#26332F] text-[12px] font-bold text-[#F2FAF6]">
+                          ✓
+                        </span>
+                        <div className="flex flex-1 flex-col gap-2.5">
+                          <span className="text-[18px] font-bold">
+                            {spot.name}
+                          </span>
+                          <span className="text-[15px] leading-[1.8] text-[#5C6B66]">
+                            &ldquo;{checkin.note}&rdquo;
+                          </span>
+                        </div>
+                        {draftPhotos[spot.id] && (
+                          // eslint-disable-next-line @next/next/no-img-element -- session-only blob: preview, not a static asset
+                          <img
+                            src={draftPhotos[spot.id]}
+                            alt=""
+                            className="h-[110px] w-[110px] flex-none rounded-[10px] border border-[rgba(38,51,47,0.1)] object-cover"
+                          />
+                        )}
+                      </div>
+                    );
+                  }
+                  return (
+                    <div
+                      key={spot.id}
+                      className="flex flex-col gap-3 rounded-2xl border border-dashed border-[rgba(38,51,47,0.28)] p-6"
+                    >
+                      <div className="flex items-center gap-5">
+                        <span className="h-6 w-6 flex-none rounded-full border-2 border-[rgba(38,51,47,0.3)]" />
+                        <div className="flex flex-col gap-[5px]">
+                          <span className="text-[18px] font-bold text-[#5C6B66]">
+                            {spot.name}
+                          </span>
+                          <span className="text-[14px] text-[#8D9A95]">
+                            도착하면 한 줄 남기기
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2.5 pl-11">
+                        <input
+                          value={draftNotes[spot.id] ?? ""}
+                          onChange={(e) =>
+                            setDraftNotes((prev) => ({
+                              ...prev,
+                              [spot.id]: e.target.value,
+                            }))
+                          }
+                          placeholder="한 줄 기록을 남겨보세요"
+                          className="rounded-lg border border-[rgba(38,51,47,0.2)] px-3.5 py-2.5 text-[14px] placeholder:text-[#9BA8A3]"
+                        />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            handlePhotoChange(
+                              spot.id,
+                              e.target.files?.[0] ?? null,
+                            )
+                          }
+                          className="text-[13px]"
+                        />
+                        {draftPhotos[spot.id] && (
+                          // eslint-disable-next-line @next/next/no-img-element -- session-only blob: preview, not a static asset
+                          <img
+                            src={draftPhotos[spot.id]}
+                            alt=""
+                            className="h-20 w-20 rounded-lg object-cover"
+                          />
+                        )}
+                        <button
+                          onClick={() => handleCheckin(spot.id)}
+                          className="w-fit rounded-xl border border-[rgba(38,51,47,0.28)] px-[22px] py-[13px] text-[14.5px] font-bold"
+                        >
+                          체크인
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {travelogue ? (
+                <div className="flex flex-col gap-4 rounded-2xl bg-[#16332E] p-8 text-[#F2FAF6]">
+                  <span className="font-archivo text-[11px] tracking-[.28em] text-[#3FBFA3] uppercase">
+                    AI 여행기
+                  </span>
+                  <p className="text-[16px] leading-[2.1] whitespace-pre-line text-[#C7DAD3]">
+                    {travelogue}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center gap-[18px]">
+                  <button
+                    onClick={handleGenerateTravelogue}
+                    disabled={!complete}
+                    className="rounded-[14px] bg-[#E8623C] px-9 py-[18px] text-[16.5px] font-bold text-white disabled:opacity-40"
+                  >
+                    여행기 생성하기
+                  </button>
+                  <span className="text-[14px] text-[#8D9A95]">
+                    {complete
+                      ? "모든 스팟을 기록했어요"
+                      : `${checkinCount}/${route.spots.length}곳 기록했어요`}
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+
+          <Link href="/my" className="mt-2 w-fit text-[14px] font-bold">
+            내 코스로 돌아가기
+          </Link>
+        </div>
+      </main>
     </div>
   );
 }

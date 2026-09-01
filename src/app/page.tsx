@@ -23,15 +23,18 @@ export default function Home() {
     <div className="flex min-h-screen flex-col bg-[#FDFDFB] text-[#26332F]">
       <header className="flex h-[76px] items-center justify-between border-b border-[rgba(38,51,47,0.1)] px-6 lg:px-14">
         <span className="text-[17px] font-bold tracking-[-.008em]">동네 큐레이터</span>
-        <div className="flex items-center gap-4">
-          <Link href="/gallery" className="text-[14.5px] font-bold">
+        <div className="flex items-center gap-8 text-[14.5px] text-[#5C6B66]">
+          <Link href="/gallery" className="hover:text-[#E8623C]">
             갤러리
           </Link>
-          <Link href="/plan" className="text-[14.5px] font-bold">
-            등급
-          </Link>
-          <Link href="/my" className="text-[14.5px] font-bold">
+          <Link href="/my" className="hover:text-[#E8623C]">
             내 코스
+          </Link>
+          <Link
+            href="/plan"
+            className="rounded-full border border-[rgba(38,51,47,0.28)] px-[18px] py-[9px] font-bold text-[#26332F]"
+          >
+            프리미엄
           </Link>
         </div>
       </header>
