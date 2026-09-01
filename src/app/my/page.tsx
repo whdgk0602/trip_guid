@@ -86,7 +86,9 @@ export default function MyPage() {
                 key={route.id}
                 className="flex items-center justify-between gap-3 rounded-[14px] border border-[rgba(38,51,47,0.14)] p-4"
               >
-                <span className="font-bold">{route.title}</span>
+                <Link href={`/my/${route.id}`} className="font-bold">
+                  {route.title}
+                </Link>
                 <button
                   onClick={() => toggleVisibility(route.id)}
                   className={`rounded-full px-3 py-1 text-[12px] font-bold ${
