@@ -11,6 +11,7 @@ import {
   persistSavedRoutes,
   type Visibility,
 } from "@/lib/savedRoutes";
+import { getTier, type Tier } from "@/lib/tier";
 
 type Spot = {
   id: string;
@@ -31,6 +32,7 @@ export default function GenerateClient({ text }: { text: string }) {
   const [course, setCourse] = useState<Course | null>(null);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [tier, setTier] = useState<Tier>("free");
 
   function handleSave(visibility: Visibility) {
     if (!course) return;
@@ -41,6 +43,11 @@ export default function GenerateClient({ text }: { text: string }) {
   }
 
   useEffect(() => {
+    const anonymousId = getOrCreateAnonymousId(localStorage);
+    const currentTier = getTier(localStorage, anonymousId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTier(currentTier);
+
     const startedAt = Date.now();
     const timer = setInterval(() => {
       setPhaseText(getLoadingPhaseText(Date.now() - startedAt));
@@ -48,7 +55,7 @@ export default function GenerateClient({ text }: { text: string }) {
 
     fetch("/api/routes/generate", {
       method: "POST",
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, tier: currentTier }),
     })
       .then((response) => response.json())
       .then((data: Course) => {
@@ -143,7 +150,8 @@ export default function GenerateClient({ text }: { text: string }) {
         <span className="text-[17px] font-bold">동네 큐레이터</span>
         <div className="flex items-center gap-3">
           <span className="text-[13px] text-[#5C6B66] lg:text-[13.5px]">
-            무료 등급 · 스팟 {course.spots.length}개
+            {tier === "premium" ? "프리미엄 등급" : "무료 등급"} · 스팟{" "}
+            {course.spots.length}개
           </span>
           <button
             onClick={() => setIsShareModalOpen(true)}
@@ -170,6 +178,7 @@ export default function GenerateClient({ text }: { text: string }) {
       {isShareModalOpen && (
         <ShareModal
           course={course}
+          tier={tier}
           onClose={() => setIsShareModalOpen(false)}
         />
       )}

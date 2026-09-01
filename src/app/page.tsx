@@ -27,6 +27,9 @@ export default function Home() {
           <Link href="/gallery" className="text-[14.5px] font-bold">
             갤러리
           </Link>
+          <Link href="/plan" className="text-[14.5px] font-bold">
+            등급
+          </Link>
           <Link href="/my" className="text-[14.5px] font-bold">
             내 코스
           </Link>

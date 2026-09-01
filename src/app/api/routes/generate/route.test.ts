@@ -22,4 +22,31 @@ describe("POST /api/routes/generate", () => {
       expect(typeof spot.address).toBe("string");
     }
   });
+
+  test("returns 5 spots when tier is 'premium'", async () => {
+    const request = new Request("http://localhost/api/routes/generate", {
+      method: "POST",
+      body: JSON.stringify({
+        text: "출근길에 대림역에서 2호선 갈아타고 강남역에서 내려요",
+        tier: "premium",
+      }),
+    });
+
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(body.spots).toHaveLength(5);
+  });
+
+  test("returns 3 spots when tier is omitted", async () => {
+    const request = new Request("http://localhost/api/routes/generate", {
+      method: "POST",
+      body: JSON.stringify({ text: "출근길에 대림역에서 2호선 갈아타고 강남역에서 내려요" }),
+    });
+
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(body.spots).toHaveLength(3);
+  });
 });

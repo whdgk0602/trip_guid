@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { buildShareFileName } from "@/lib/shareFileName";
+import type { Tier } from "@/lib/tier";
 
 type Spot = {
   id: string;
@@ -16,9 +17,11 @@ type ShareCourse = {
 
 export default function ShareModal({
   course,
+  tier,
   onClose,
 }: {
   course: ShareCourse;
+  tier: Tier;
   onClose: () => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -70,7 +73,9 @@ export default function ShareModal({
               </li>
             ))}
           </ul>
-          <p className="text-xs text-[#9AA6A1]">동네 큐레이터로 만듦</p>
+          {tier !== "premium" && (
+            <p className="text-xs text-[#9AA6A1]">동네 큐레이터로 만듦</p>
+          )}
         </div>
 
         {hasFailed && (
