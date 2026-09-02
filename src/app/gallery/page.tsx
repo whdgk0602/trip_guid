@@ -31,7 +31,7 @@ export default function GalleryPage() {
     <div className="flex min-h-screen flex-col bg-[#FDFDFB] text-[#26332F]">
       <header className="flex h-[76px] items-center justify-between border-b border-[rgba(38,51,47,0.1)] px-6 lg:px-14">
         <Link href="/" className="text-[17px] font-bold tracking-[-.008em]">
-          동네 큐레이터
+          데일리루트
         </Link>
         <div className="flex items-center gap-8 text-[14.5px] text-[#5C6B66]">
           <span className="font-bold text-[#26332F]">갤러리</span>

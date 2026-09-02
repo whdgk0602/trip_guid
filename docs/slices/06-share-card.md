@@ -23,7 +23,7 @@
 
 - **새 의존성 설치**: `html-to-image` (DOM 노드를 PNG로 변환하는 라이브러리). `npm install html-to-image`로 설치하고 `package.json`/`package-lock.json`에 반영
 - **새로 만들 파일**:
-  - `src/app/generate/ShareModal.tsx` — 카드 미리보기(제목 + 스팟 이름 최대 3개 + "동네 큐레이터로 만듦" 워터마크 문구) + "이미지 저장" + "닫기" 버튼. `html-to-image`의 `toPng`로 카드 DOM을 PNG로 변환해 다운로드
+  - `src/app/generate/ShareModal.tsx` — 카드 미리보기(제목 + 스팟 이름 최대 3개 + "데일리루트로 만듦" 워터마크 문구) + "이미지 저장" + "닫기" 버튼. `html-to-image`의 `toPng`로 카드 DOM을 PNG로 변환해 다운로드
   - `src/lib/shareFileName.ts` — `buildShareFileName(title: string): string`. 코스 제목을 파일명으로 안전하게 바꾸는 순수 함수(공백은 `-`로, 파일명에 못 쓰는 특수문자는 제거, 예: "강남역 골목 산책" → `강남역-골목-산책.png`)
   - `src/lib/shareFileName.test.ts`
 - **고칠 파일**: `src/app/generate/GenerateClient.tsx` — 헤더에 "공유하기" 버튼 추가, 클릭 시 `ShareModal` 열기

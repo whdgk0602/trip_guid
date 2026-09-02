@@ -72,7 +72,7 @@ export default function GenerateClient({ text }: { text: string }) {
     return (
       <div className="flex min-h-screen flex-col bg-[#16332E] text-[#F2FAF6]">
         <header className="flex h-[76px] items-center border-b border-[rgba(242,250,246,0.12)] px-6 lg:px-14">
-          <span className="text-[17px] font-bold">동네 큐레이터</span>
+          <span className="text-[17px] font-bold">데일리루트</span>
         </header>
 
         <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 lg:gap-11">
@@ -147,7 +147,7 @@ export default function GenerateClient({ text }: { text: string }) {
   return (
     <div className="flex min-h-screen flex-col bg-[#FDFDFB] text-[#26332F]">
       <header className="flex h-[76px] items-center justify-between border-b border-[rgba(38,51,47,0.1)] px-6 lg:px-14">
-        <span className="text-[17px] font-bold">동네 큐레이터</span>
+        <span className="text-[17px] font-bold">데일리루트</span>
         <div className="flex items-center gap-3">
           <span className="text-[13px] text-[#5C6B66] lg:text-[13.5px]">
             {tier === "premium" ? "프리미엄 등급" : "무료 등급"} · 스팟{" "}

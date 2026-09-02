@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "동네 큐레이터",
+  title: "데일리루트",
   description: "일상 경로를 AI가 로컬 여행 코스로 만들어주는 서비스",
 };
 

@@ -83,7 +83,7 @@ export default function CourseDetailPage() {
     <div className="flex min-h-screen flex-col bg-[#FDFDFB] text-[#26332F]">
       <header className="flex h-[76px] items-center justify-between border-b border-[rgba(38,51,47,0.1)] px-6 lg:px-14">
         <Link href="/" className="text-[17px] font-bold tracking-[-.008em]">
-          동네 큐레이터
+          데일리루트
         </Link>
         {tier === "premium" && (
           <span className="rounded-full bg-[rgba(232,98,60,0.14)] px-3 py-1.5 text-[12px] font-bold text-[#B14324]">

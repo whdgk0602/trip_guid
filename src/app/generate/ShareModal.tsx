@@ -72,7 +72,7 @@ export default function ShareModal({
           className="flex w-full max-w-[400px] flex-col rounded-lg bg-[#FDFDFB] p-9 pb-10 text-[#26332F] shadow-[0_26px_60px_rgba(0,0,0,0.4)] lg:h-[500px] lg:w-[400px]"
         >
           <span className="font-archivo text-[11px] tracking-[.3em] text-[#E8623C] uppercase">
-            Local Curator
+            Daily Route
           </span>
           <h3 className="mt-7 text-[28px] leading-[1.24] font-bold tracking-[-.014em] break-words lg:text-[36px]">
             {course.title}
@@ -93,7 +93,7 @@ export default function ShareModal({
           {tier !== "premium" && (
             <div className="mt-auto flex justify-end pt-6">
               <span className="rounded-full border border-[rgba(38,51,47,0.18)] px-[10px] py-[5px] text-[11px] font-bold text-[#93A69F]">
-                동네 큐레이터로 만듦
+                데일리루트로 만듦
               </span>
             </div>
           )}
