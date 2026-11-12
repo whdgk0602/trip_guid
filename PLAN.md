@@ -65,7 +65,8 @@ https://trip-guid.vercel.app — GitHub `main` 연동 자동 배포. 이후 API 
 - 지오코딩을 순차로 바꿔 직전 지점에서 가장 가까운 후보 선택 (상위 5개 중) — "원대리"가 충북 제천으로, "한강공원"이 여의도로 잡히던 문제 해결
 - LLM 폴백을 OpenRouter `models` 대신 직접 순회로 변경 — 모델당 8초 제한, 429/빈 응답 시 다음 모델, "reasoning is mandatory"(ernie) 400이면 reasoning 옵션 빼고 재시도
 - 제목/소개/스팟 설명은 템플릿 (`templateCourseText`, "OO 근처의 카페.") → FR-4에서 교체
-- 알려진 한계: 앞 모델이 느리면 응답이 ~10초까지 걸림 (gemma 429 → nemotron 8초 타임아웃 → ernie). 모델 순서 조정 또는 FR-4와 함께 캐싱(NFR-5) 검토
+- 모델 순서를 `ernie → gemma → nemotron`으로 변경 (2026-11-13 벤치마크: ernie 1.2~2.5s·4/5 정확, gemma 5/5 429, nemotron 정확하나 17~25s 지연 빈발). `.env.local`·Vercel 3개 환경 모두 반영
+- 알려진 한계: ernie가 빈 응답이면 ~10초까지 걸릴 수 있음, ernie는 preview 모델이라 중단 가능 (폴백으로 흡수). FR-4와 함께 캐싱(NFR-5) 검토
 
 ## 오늘 안 만들 기능 (다음 세션 이후)
 
