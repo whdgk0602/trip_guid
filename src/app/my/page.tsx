@@ -4,6 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getOrCreateAnonymousId } from "@/lib/anonymousId";
 import {
+  publishToGallery,
+  syncPublicRoutes,
+  unpublishFromGallery,
+} from "@/lib/galleryClient";
+import {
   filterRoutesByVisibility,
   loadSavedRoutes,
   persistSavedRoutes,
@@ -28,7 +33,10 @@ export default function MyPage() {
     const id = getOrCreateAnonymousId(localStorage);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setAnonymousId(id);
-    setRoutes(loadSavedRoutes(localStorage, id));
+    const loaded = loadSavedRoutes(localStorage, id);
+    setRoutes(loaded);
+    // 저장 시 게시가 실패했던 공개 코스까지 서버 갤러리에 반영
+    void syncPublicRoutes(loaded, id);
   }, []);
 
   function toggleVisibility(id: string) {
@@ -38,6 +46,11 @@ export default function MyPage() {
     const updated = setSavedRouteVisibility(routes, id, nextVisibility);
     setRoutes(updated);
     persistSavedRoutes(localStorage, anonymousId, updated);
+    if (nextVisibility === "public") {
+      void publishToGallery({ ...route, visibility: "public" }, anonymousId);
+    } else {
+      void unpublishFromGallery(id, anonymousId);
+    }
   }
 
   const visibleRoutes = filterRoutesByVisibility(routes, filter);

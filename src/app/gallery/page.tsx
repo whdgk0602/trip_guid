@@ -2,13 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getOrCreateAnonymousId } from "@/lib/anonymousId";
-import {
-  filterRoutesByVisibility,
-  loadSavedRoutes,
-  sortRoutesByNewest,
-  type SavedRoute,
-} from "@/lib/savedRoutes";
+import { fetchGallery, type PublicCourse } from "@/lib/galleryClient";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -16,14 +10,30 @@ function formatDate(iso: string): string {
 }
 
 export default function GalleryPage() {
-  const [routes, setRoutes] = useState<SavedRoute[]>([]);
+  const [routes, setRoutes] = useState<PublicCourse[]>([]);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    const id = getOrCreateAnonymousId(localStorage);
-    const loaded = loadSavedRoutes(localStorage, id);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRoutes(sortRoutesByNewest(filterRoutesByVisibility(loaded, "public")));
-  }, []);
+    let cancelled = false;
+    fetchGallery()
+      .then((courses) => {
+        if (cancelled) return;
+        setRoutes(courses);
+        setStatus("ready");
+      })
+      .catch(() => {
+        if (!cancelled) setStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [attempt]);
+
+  function retry() {
+    setStatus("loading");
+    setAttempt((n) => n + 1);
+  }
 
   const [featured, ...rest] = routes;
 
@@ -55,13 +65,27 @@ export default function GalleryPage() {
                 갤러리
               </h1>
               <p className="text-[14.5px] text-[#5C6B66]">
-                이 브라우저에 공개로 저장한 코스만 보여요
+                모두가 공개로 저장한 코스를 모아 보여줘요
               </p>
             </div>
             <span className="text-[14px] font-bold">최신순</span>
           </div>
 
-          {!featured ? (
+          {status === "loading" ? (
+            <p className="py-16 text-center text-[14px] text-[#5C6B66]">
+              코스를 불러오는 중이에요
+            </p>
+          ) : status === "error" ? (
+            <div className="flex flex-col items-center gap-4 py-16 text-center">
+              <p className="text-[14px] text-[#5C6B66]">갤러리를 불러오지 못했어요</p>
+              <button
+                onClick={retry}
+                className="rounded-full border border-[rgba(38,51,47,0.28)] px-5 py-2.5 text-[14px] font-bold"
+              >
+                다시 시도
+              </button>
+            </div>
+          ) : !featured ? (
             <p className="py-16 text-center text-[14px] text-[#5C6B66]">
               아직 공개로 저장된 코스가 없어요
             </p>

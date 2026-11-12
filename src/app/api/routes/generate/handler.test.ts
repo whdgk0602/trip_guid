@@ -32,6 +32,7 @@ function handlerWith(overrides: Partial<GenerateDeps> = {}) {
     resolvePlaces: async () => places,
     buildSpots: async (_places, count) => spots(count),
     writeCourse: async (p, s) => composeCourse(p, s, null),
+    sign: () => "sig",
     ...overrides,
   });
 }
@@ -91,6 +92,18 @@ describe("POST /api/routes/generate", () => {
     expect(writeCourse).toHaveBeenCalledWith(places, spots(3));
     expect(body.title).toBe("강바람 산책");
     expect(body.spots[0].description).toBe("생성된 설명");
+  });
+
+  test("signs the final course for gallery publishing", async () => {
+    const sign = vi.fn(() => "abc");
+    const body = await (await handlerWith({ sign })(post({ text: TEXT }))).json();
+
+    expect(sign).toHaveBeenCalledWith({
+      title: body.title,
+      intro: body.intro,
+      spots: body.spots,
+    });
+    expect(body.signature).toBe("abc");
   });
 
   test("includes the resolved places with coordinates", async () => {

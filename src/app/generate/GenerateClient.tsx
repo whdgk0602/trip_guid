@@ -12,6 +12,7 @@ import { getLoadingPhaseText } from "./loadingPhase";
 import SaveModal from "./SaveModal";
 import ShareModal from "./ShareModal";
 import { getOrCreateAnonymousId } from "@/lib/anonymousId";
+import { publishToGallery } from "@/lib/galleryClient";
 import {
   addSavedRoute,
   loadSavedRoutes,
@@ -34,6 +35,8 @@ type Course = {
   spots: Spot[];
   /** 등급 기준 요청 개수 — 주변 장소가 부족하면 spots가 이보다 적음 */
   requestedSpotCount?: number;
+  /** 갤러리 게시용 서버 서명 */
+  signature?: string;
 };
 
 export default function GenerateClient({ text }: { text: string }) {
@@ -51,6 +54,10 @@ export default function GenerateClient({ text }: { text: string }) {
     const existing = loadSavedRoutes(localStorage, anonymousId);
     const updated = addSavedRoute(existing, course, visibility);
     persistSavedRoutes(localStorage, anonymousId, updated);
+    if (visibility === "public") {
+      // 실패해도 로컬 저장은 유지 — 마이페이지 방문 시 다시 동기화됨
+      void publishToGallery(updated[updated.length - 1], anonymousId);
+    }
   }
 
   useEffect(() => {

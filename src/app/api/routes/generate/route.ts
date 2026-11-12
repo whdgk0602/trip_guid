@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { buildSpots, type Spot } from "@/lib/server/buildCourse";
+import { signCourse } from "@/lib/server/courseSignature";
 import {
   composeCourse,
   generateCourseText,
@@ -86,4 +87,8 @@ export const POST = createGenerateHandler({
     });
   },
   writeCourse,
+  sign: (course) => {
+    const secret = process.env.GALLERY_SIGNING_SECRET;
+    return secret ? signCourse(course, secret) : undefined;
+  },
 });

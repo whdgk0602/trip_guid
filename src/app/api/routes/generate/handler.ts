@@ -13,6 +13,8 @@ export type GenerateDeps = {
   buildSpots: (places: GeoPlace[], count: number) => Promise<Spot[]>;
   /** 제목·소개·스팟 설명 작성 (FR-4). LLM 실패 시 템플릿으로 채우므로 보통 throw하지 않음 */
   writeCourse: (places: GeoPlace[], spots: Spot[]) => Promise<Course>;
+  /** 갤러리 게시용 서버 서명 (FR-8). 서명 키가 없으면 undefined — 생성은 계속 동작 */
+  sign: (course: Course) => string | undefined;
 };
 
 export type GenerateErrorCode =
@@ -34,6 +36,7 @@ export function createGenerateHandler({
   resolvePlaces,
   buildSpots,
   writeCourse,
+  sign,
 }: GenerateDeps) {
   return async function POST(request: Request): Promise<Response> {
     const body = await request.json().catch(() => null);
@@ -55,6 +58,7 @@ export function createGenerateHandler({
 
       return Response.json({
         ...course,
+        signature: sign(course),
         places,
         requestedSpotCount,
       });

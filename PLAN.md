@@ -85,6 +85,18 @@ https://trip-guid.vercel.app — GitHub `main` 연동 자동 배포. 이후 API 
 - [ ] **실제 LLM 생성 문구 품질 확인** — OpenRouter 일일 한도 초기화 후. 톤·사실 날조 여부·응답 시간 점검, 필요 시 프롬프트 수정 후 캐시 키 버전 올리기
 - 참고: OpenRouter 키의 사용 한도가 $100로 설정돼 있음 (무료 계정이라 현재 과금 불가, 크레딧 충전 시 낮출 것)
 
+### 5. 갤러리 서버 저장소 — PRD FR-8 🟡 (2026-11-13, 코드 완료 · 운영 저장소 연결 대기)
+- 저장소: **Upstash Redis** (Vercel Marketplace, REST라 SDK 없이 fetch). `gallery:course:{id}` JSON + ZSET `gallery:index`(score=createdAt)
+- 범위: **공개 코스만** 서버에 올림. 비공개는 지금처럼 브라우저 localStorage에만
+- 위조 방지: 생성 API가 코스(title/intro/spots)에 HMAC 서명(`GALLERY_SIGNING_SECRET`) → 게시 시 검증, 불일치 403
+- 소유권: `sha256(anonymousId)`만 저장, 다른 사람의 코스 덮어쓰기·삭제 403. 목록 응답엔 소유자 정보 없음
+- API: `GET /api/gallery`(최신 50개), `PUT /api/gallery/[id]`(같은 요청 반복해도 안전), `DELETE /api/gallery/[id]`
+- 클라이언트: 공개 저장 시 게시 / 마이페이지 토글 시 게시·삭제 / 마이페이지 방문 시 공개 코스 재동기화(실패분 복구) / 갤러리는 서버 목록 + 로딩·에러·재시도
+- 서명 도입 전에 저장한 코스는 서명이 없어 갤러리에 안 올라감 (이 브라우저에만 남음)
+- 로컬: Upstash 환경변수가 없으면 **개발 서버에서만** 메모리 저장소, 운영은 502
+- [x] 로컬 e2e: 생성→공개 저장→갤러리 노출→비공개 전환→갤러리에서 사라짐, 위조 403, 타인 삭제 403
+- [ ] Vercel에 Upstash Redis 연결 + `GALLERY_SIGNING_SECRET` 등록 → push → 운영 확인
+
 ## 오늘 안 만들 기능 (다음 세션 이후)
 - 갤러리 서버 저장소 이전 (FR-8) — 저장소(Vercel Postgres/KV, Supabase 등) 선택 필요
 - anonymousId 유실 안내 문구 (NFR-6)

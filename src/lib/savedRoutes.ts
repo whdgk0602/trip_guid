@@ -10,6 +10,8 @@ type Course = {
   title: string;
   intro: string;
   spots: Spot[];
+  /** 생성 API의 서버 서명 — 갤러리 게시에 필요 (서명 도입 전 저장분에는 없음) */
+  signature?: string;
 };
 
 export type Visibility = "public" | "private";
