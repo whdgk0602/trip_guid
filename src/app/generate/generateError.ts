@@ -2,9 +2,15 @@ export type GenerateErrorCode =
   | "INVALID_INPUT"
   | "PLACE_NOT_FOUND"
   | "GEOCODE_FAILED"
+  | "NO_NEARBY_SPOTS"
   | "UPSTREAM_ERROR";
 
-const INPUT_ERRORS = ["INVALID_INPUT", "PLACE_NOT_FOUND", "GEOCODE_FAILED"];
+const INPUT_ERRORS = [
+  "INVALID_INPUT",
+  "PLACE_NOT_FOUND",
+  "GEOCODE_FAILED",
+  "NO_NEARBY_SPOTS",
+];
 
 /** API 에러 응답 본문 → 에러 코드. 모르는 형태는 재시도 가능한 서버 오류로 본다. */
 export function toGenerateErrorCode(body: unknown): GenerateErrorCode {
@@ -39,6 +45,13 @@ export function getGenerateErrorView(code: GenerateErrorCode): GenerateErrorView
       return {
         title: "장소 위치를 찾지 못했어요",
         description: "지명의 철자나 표기를 확인한 뒤 다시 입력해주세요.",
+        canRetry: false,
+        showExample: true,
+      };
+    case "NO_NEARBY_SPOTS":
+      return {
+        title: "주변에서 들를 만한 곳을 찾지 못했어요",
+        description: "근처에 역이나 동네 이름이 있는 다른 경로로 입력해주세요.",
         canRetry: false,
         showExample: true,
       };

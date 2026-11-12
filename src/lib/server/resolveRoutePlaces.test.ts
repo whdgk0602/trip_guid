@@ -40,6 +40,22 @@ describe("resolveRoutePlaces", () => {
     expect(result).toEqual([gangnam, yeoksam]);
   });
 
+  test("geocodes each name near the previously resolved place", async () => {
+    const geocode = vi.fn(async (name: string) =>
+      name === "강남역" ? gangnam : yeoksam,
+    );
+
+    await resolveRoutePlaces("강남역에서 역삼역까지 퇴근길", {
+      extractPlaceNames: async () => ["강남역", "역삼역"],
+      geocode,
+    });
+
+    expect(geocode.mock.calls).toEqual([
+      ["강남역", undefined],
+      ["역삼역", gangnam],
+    ]);
+  });
+
   test("skips names that fail to geocode as long as one succeeds", async () => {
     const result = await resolveRoutePlaces("강남역에서 어딘가까지", {
       extractPlaceNames: async () => ["강남역", "어딘가"],

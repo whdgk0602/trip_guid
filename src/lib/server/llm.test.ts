@@ -28,36 +28,79 @@ function okResponse(content: string) {
   );
 }
 
+function errorResponse(status: number, message = "") {
+  return new Response(JSON.stringify({ error: { message, code: status } }), { status });
+}
+
+const MSG = [{ role: "user" as const, content: "hi" }];
+const bodyOf = (call: unknown[]) => JSON.parse((call[1] as RequestInit).body as string);
+
 describe("chatCompletion", () => {
-  test("sends the model fallback list and returns the message content", async () => {
+  test("calls the first model with reasoning disabled and returns its content", async () => {
     const fetchFn = vi.fn().mockResolvedValue(okResponse("안녕"));
 
-    const result = await chatCompletion([{ role: "user", content: "hi" }], {
+    const result = await chatCompletion(MSG, {
       apiKey: "k",
       models: ["a:free", "b:free"],
       fetchFn,
     });
 
     expect(result).toBe("안녕");
+    expect(fetchFn).toHaveBeenCalledTimes(1);
     const [url, init] = fetchFn.mock.calls[0];
     expect(url).toBe("https://openrouter.ai/api/v1/chat/completions");
     expect(init.headers.Authorization).toBe("Bearer k");
-    expect(JSON.parse(init.body).models).toEqual(["a:free", "b:free"]);
-    expect(JSON.parse(init.body).reasoning).toEqual({ enabled: false });
+    expect(bodyOf(fetchFn.mock.calls[0])).toMatchObject({
+      model: "a:free",
+      reasoning: { enabled: false },
+    });
   });
 
-  test("throws UpstreamError on non-2xx (e.g. 429 rate limit)", async () => {
+  test("falls through to the next model on 429", async () => {
     const fetchFn = vi
       .fn()
-      .mockResolvedValue(new Response("{}", { status: 429 }));
+      .mockResolvedValueOnce(errorResponse(429, "rate-limited upstream"))
+      .mockResolvedValueOnce(okResponse("두번째"));
+
+    const result = await chatCompletion(MSG, { apiKey: "k", models: ["a", "b"], fetchFn });
+
+    expect(result).toBe("두번째");
+    expect(bodyOf(fetchFn.mock.calls[1]).model).toBe("b");
+  });
+
+  test("falls through when a model returns empty content", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ choices: [{ message: { content: null } }] })),
+      )
+      .mockResolvedValueOnce(okResponse("ok"));
+
+    expect(await chatCompletion(MSG, { apiKey: "k", models: ["a", "b"], fetchFn })).toBe("ok");
+  });
+
+  test("retries the same model without the reasoning option when reasoning is mandatory", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(
+        errorResponse(400, "Reasoning is mandatory for this endpoint and cannot be disabled."),
+      )
+      .mockResolvedValueOnce(okResponse("ernie"));
+
+    const result = await chatCompletion(MSG, { apiKey: "k", models: ["ernie"], fetchFn });
+
+    expect(result).toBe("ernie");
+    expect(bodyOf(fetchFn.mock.calls[1]).model).toBe("ernie");
+    expect(bodyOf(fetchFn.mock.calls[1]).reasoning).toBeUndefined();
+  });
+
+  test("throws UpstreamError when every model fails", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(errorResponse(429));
 
     await expect(
-      chatCompletion([{ role: "user", content: "hi" }], {
-        apiKey: "k",
-        models: ["a:free"],
-        fetchFn,
-      }),
+      chatCompletion(MSG, { apiKey: "k", models: ["a", "b"], fetchFn }),
     ).rejects.toBeInstanceOf(UpstreamError);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
   test("throws UpstreamError when the network call fails", async () => {

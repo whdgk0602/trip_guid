@@ -1,5 +1,6 @@
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const TIMEOUT_MS = 20_000;
+/** 모델 하나당 제한 시간 — 무료 모델은 가끔 수십 초씩 걸려서 끊고 다음 모델로 */
+const PER_MODEL_TIMEOUT_MS = 8_000;
 
 export type FetchFn = typeof fetch;
 
@@ -15,16 +16,23 @@ export type ChatMessage = { role: "system" | "user"; content: string };
 
 export type ChatOptions = {
   apiKey: string;
-  /** OpenRouter `models` 폴백 목록 — 앞 모델이 실패하면 다음 모델로 자동 전환 */
+  /** 시도할 모델 순서 — 앞 모델이 실패하면 다음 모델 */
   models: string[];
   fetchFn?: FetchFn;
   maxTokens?: number;
+  timeoutMs?: number;
 };
 
-export async function chatCompletion(
+type Attempt =
+  | { ok: true; content: string }
+  | { ok: false; reason: string; reasoningMandatory?: boolean };
+
+async function tryModel(
+  model: string,
   messages: ChatMessage[],
-  { apiKey, models, fetchFn = fetch, maxTokens = 300 }: ChatOptions,
-): Promise<string> {
+  disableReasoning: boolean,
+  { apiKey, fetchFn = fetch, maxTokens = 300, timeoutMs = PER_MODEL_TIMEOUT_MS }: ChatOptions,
+): Promise<Attempt> {
   let response: Response;
   try {
     response = await fetchFn(OPENROUTER_URL, {
@@ -34,30 +42,55 @@ export async function chatCompletion(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        models,
+        model,
         messages,
         max_tokens: maxTokens,
         temperature: 0,
-        // 폴백 목록의 추론형 모델(nemotron 등)이 max_tokens를 사고 과정에 다 써서
-        // content가 null로 끝나는 문제 방지 — 단순 추출/생성이라 추론 불필요
-        reasoning: { enabled: false },
+        // 추론형 모델(nemotron 등)이 max_tokens를 사고 과정에 다 써서 content가 null로
+        // 끝나는 문제 방지. 단, 추론을 끌 수 없는 모델(ernie 등)은 400 → 빼고 재시도
+        ...(disableReasoning ? { reasoning: { enabled: false } } : {}),
       }),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
-    throw new UpstreamError(`openrouter request failed: ${String(error)}`);
-  }
-
-  if (!response.ok) {
-    throw new UpstreamError(`openrouter responded ${response.status}`);
+    return { ok: false, reason: `${model}: request failed (${String(error)})` };
   }
 
   const data = await response.json().catch(() => null);
-  const content = data?.choices?.[0]?.message?.content;
-  if (typeof content !== "string") {
-    throw new UpstreamError("openrouter returned no message content");
+  if (!response.ok) {
+    const message: string = data?.error?.message ?? "";
+    return {
+      ok: false,
+      reason: `${model}: ${response.status} ${message}`.trim(),
+      reasoningMandatory: response.status === 400 && /reasoning is mandatory/i.test(message),
+    };
   }
-  return content;
+
+  const content = data?.choices?.[0]?.message?.content;
+  if (typeof content !== "string" || content.trim() === "") {
+    return { ok: false, reason: `${model}: empty content` };
+  }
+  return { ok: true, content };
+}
+
+/**
+ * OpenRouter 채팅 호출. 무료 모델은 429(공유 한도)·지연·빈 응답이 잦아서
+ * OpenRouter 자체 폴백 대신 모델별로 직접 시도한다 — 모델마다 요청 옵션을 달리 줄 수 있게.
+ */
+export async function chatCompletion(
+  messages: ChatMessage[],
+  options: ChatOptions,
+): Promise<string> {
+  const failures: string[] = [];
+  for (const model of options.models) {
+    let attempt = await tryModel(model, messages, true, options);
+    if (!attempt.ok && attempt.reasoningMandatory) {
+      attempt = await tryModel(model, messages, false, options);
+    }
+    if (attempt.ok) return attempt.content;
+    failures.push(attempt.reason);
+  }
+  throw new UpstreamError(`all models failed — ${failures.join(" | ")}`);
 }
 
 /**

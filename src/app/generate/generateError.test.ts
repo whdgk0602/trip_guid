@@ -6,6 +6,13 @@ describe("toGenerateErrorCode", () => {
     expect(toGenerateErrorCode({ error: "PLACE_NOT_FOUND" })).toBe("PLACE_NOT_FOUND");
     expect(toGenerateErrorCode({ error: "GEOCODE_FAILED" })).toBe("GEOCODE_FAILED");
     expect(toGenerateErrorCode({ error: "INVALID_INPUT" })).toBe("INVALID_INPUT");
+    expect(toGenerateErrorCode({ error: "NO_NEARBY_SPOTS" })).toBe("NO_NEARBY_SPOTS");
+  });
+
+  test("NO_NEARBY_SPOTS asks for a different route", () => {
+    const view = getGenerateErrorView("NO_NEARBY_SPOTS");
+    expect(view.canRetry).toBe(false);
+    expect(view.showExample).toBe(true);
   });
 
   test("treats anything else as a retryable upstream error", () => {

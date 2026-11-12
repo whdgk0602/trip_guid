@@ -14,7 +14,8 @@ export class RouteResolveError extends Error {
 
 export type ResolveDeps = {
   extractPlaceNames: (text: string) => Promise<string[]>;
-  geocode: (name: string) => Promise<GeoPlace | null>;
+  /** `near`: 앞서 찾은 경로 지점 — 같은 이름의 먼 곳 대신 가까운 후보를 고르게 */
+  geocode: (name: string, near?: GeoPlace) => Promise<GeoPlace | null>;
 };
 
 /** LLM 출력(배열 또는 {places: [...]})을 정리된 지명 목록으로 */
@@ -46,16 +47,17 @@ export async function resolveRoutePlaces(
     throw new RouteResolveError("PLACE_NOT_FOUND");
   }
 
-  const geocoded = await Promise.all(names.map((name) => geocode(name)));
-
+  // 순차 지오코딩: 각 지명을 직전에 찾은 지점 기준으로 해석 (경로는 이어져 있으므로)
   const seen = new Set<string>();
-  const places = geocoded.filter((place): place is GeoPlace => {
-    if (!place) return false;
+  const places: GeoPlace[] = [];
+  for (const name of names) {
+    const place = await geocode(name, places[places.length - 1]);
+    if (!place) continue;
     const key = `${place.x.toFixed(4)},${place.y.toFixed(4)}`;
-    if (seen.has(key)) return false;
+    if (seen.has(key)) continue;
     seen.add(key);
-    return true;
-  });
+    places.push(place);
+  }
 
   if (places.length === 0) {
     throw new RouteResolveError("GEOCODE_FAILED");

@@ -1,5 +1,57 @@
 import { describe, expect, test, vi } from "vitest";
-import { geocodePlace, isAdministrativeArea } from "./kakao";
+import { geocodePlace, isAdministrativeArea, searchNearbyCandidates } from "./kakao";
+
+describe("searchNearbyCandidates", () => {
+  const anchor = { query: "망원동", name: "망원동", address: "", x: 126.9, y: 37.55 };
+
+  function routedFetch() {
+    return vi.fn(async (url: URL | RequestInfo) => {
+      const u = new URL(String(url));
+      const code = u.searchParams.get("category_group_code");
+      const query = u.searchParams.get("query");
+      const docs =
+        code === "CE7"
+          ? [
+              { id: "c1", place_name: "벌툰", category_name: "가정,생활 > 여가시설 > 만화카페", x: "1", y: "1", address_name: "a" },
+              { id: "c2", place_name: "피피커피", category_name: "음식점 > 카페 > 커피전문점", x: "1", y: "1", road_address_name: "동교로 23", address_name: "a" },
+            ]
+          : query === "공원"
+            ? [
+                { id: "p1", place_name: "옹달샘어린이공원", category_name: "여행 > 공원", x: "1", y: "1", address_name: "a" },
+                { id: "p2", place_name: "CU 양화공원점", category_name: "가정,생활 > 편의점 > CU", x: "1", y: "1", address_name: "a" },
+                { id: "p3", place_name: "망원한강공원", category_name: "여행 > 공원 > 도시근린공원", x: "1", y: "1", address_name: "a" },
+              ]
+            : [];
+      return kakaoResponse(docs);
+    });
+  }
+
+  test("queries every source around the anchor with the given radius", async () => {
+    const fetchFn = routedFetch();
+    await searchNearbyCandidates([anchor], 700, { apiKey: "k", fetchFn });
+
+    expect(fetchFn).toHaveBeenCalledTimes(5);
+    const params = new URL(String(fetchFn.mock.calls[0][0])).searchParams;
+    expect(params.get("radius")).toBe("700");
+    expect(params.get("x")).toBe("126.9");
+    expect(params.get("sort")).toBe("accuracy");
+  });
+
+  test("filters out non-cafes and non-parks, ranks big parks first", async () => {
+    const result = await searchNearbyCandidates([anchor], 500, { apiKey: "k", fetchFn: routedFetch() });
+
+    expect(result.filter((c) => c.sourceKey === "cafe").map((c) => c.name)).toEqual(["피피커피"]);
+    expect(result.filter((c) => c.sourceKey === "park").map((c) => c.name)).toEqual([
+      "망원한강공원",
+      "옹달샘어린이공원",
+    ]);
+    expect(result.find((c) => c.id === "c2")).toMatchObject({
+      categoryDetail: "커피전문점",
+      address: "동교로 23",
+      anchorIndex: 0,
+    });
+  });
+});
 
 describe("isAdministrativeArea", () => {
   test("detects 동/가/구 style area names", () => {
@@ -82,6 +134,21 @@ describe("geocodePlace", () => {
       "/v2/local/search/address.json",
     );
     expect(result).toMatchObject({ name: "서울 마포구 망원동", x: 126.9 });
+  });
+
+  test("with `near`, picks the candidate closest to the previous route point", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      kakaoResponse([
+        { place_name: "원대리", address_name: "충북 제천시 수산면 원대리", x: "128.18", y: "36.93" },
+        { place_name: "원대리", address_name: "강원 인제군 인제읍 원대리", x: "128.22", y: "38.02" },
+      ]),
+    );
+    const inje = { x: 128.17, y: 38.07 };
+
+    const result = await geocodePlace("원대리", { apiKey: "k", fetchFn }, inje);
+
+    expect(result?.address).toBe("강원 인제군 인제읍 원대리");
+    expect(new URL(String(fetchFn.mock.calls[0][0])).searchParams.get("size")).toBe("5");
   });
 
   test("returns null when neither search finds the place", async () => {

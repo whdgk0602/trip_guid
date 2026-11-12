@@ -32,6 +32,8 @@ type Course = {
   title: string;
   intro: string;
   spots: Spot[];
+  /** 등급 기준 요청 개수 — 주변 장소가 부족하면 spots가 이보다 적음 */
+  requestedSpotCount?: number;
 };
 
 export default function GenerateClient({ text }: { text: string }) {
@@ -283,6 +285,13 @@ export default function GenerateClient({ text }: { text: string }) {
             </p>
           </div>
           <div className="h-px bg-[rgba(38,51,47,0.14)]" />
+          {course.requestedSpotCount !== undefined &&
+            course.spots.length < course.requestedSpotCount && (
+              <p className="rounded-[12px] bg-[#F4F1EA] px-4 py-3 text-[13px] leading-[1.6] text-[#5C6B66] lg:text-[14px]">
+                주변에 들를 만한 곳이 많지 않아 {course.spots.length}곳만
+                담았어요.
+              </p>
+            )}
           <ul className="flex flex-col gap-2.5 lg:gap-4">
             {course.spots.map((spot, i) => (
               <li
