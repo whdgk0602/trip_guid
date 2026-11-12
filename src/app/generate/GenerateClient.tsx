@@ -1,6 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import {
+  EXAMPLE_ROUTE_TEXT,
+  getGenerateErrorView,
+  toGenerateErrorCode,
+  type GenerateErrorCode,
+} from "./generateError";
 import { getLoadingPhaseText } from "./loadingPhase";
 import SaveModal from "./SaveModal";
 import ShareModal from "./ShareModal";
@@ -33,6 +40,8 @@ export default function GenerateClient({ text }: { text: string }) {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [tier, setTier] = useState<Tier>("free");
+  const [errorCode, setErrorCode] = useState<GenerateErrorCode | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   function handleSave(visibility: Visibility) {
     if (!course) return;
@@ -53,18 +62,98 @@ export default function GenerateClient({ text }: { text: string }) {
       setPhaseText(getLoadingPhaseText(Date.now() - startedAt));
     }, 100);
 
+    let cancelled = false;
     fetch("/api/routes/generate", {
       method: "POST",
       body: JSON.stringify({ text, tier: currentTier }),
     })
-      .then((response) => response.json())
-      .then((data: Course) => {
+      .then(async (response) => {
+        const data = await response.json().catch(() => null);
+        if (cancelled) return;
         clearInterval(timer);
-        setCourse(data);
+        if (response.ok) {
+          setCourse(data as Course);
+        } else {
+          setErrorCode(toGenerateErrorCode(data));
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        clearInterval(timer);
+        setErrorCode("UPSTREAM_ERROR");
       });
 
-    return () => clearInterval(timer);
-  }, [text]);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [text, attempt]);
+
+  function handleRetry() {
+    setErrorCode(null);
+    setCourse(null);
+    setPhaseText(getLoadingPhaseText(0));
+    setAttempt((n) => n + 1);
+  }
+
+  if (errorCode) {
+    const view = getGenerateErrorView(errorCode);
+
+    return (
+      <div className="flex min-h-screen flex-col bg-[#FDFDFB] text-[#26332F]">
+        <header className="flex h-[76px] items-center border-b border-[rgba(38,51,47,0.1)] px-6 lg:px-14">
+          <Link href="/" className="text-[17px] font-bold">
+            데일리루트
+          </Link>
+        </header>
+
+        <main className="flex flex-1 flex-col items-center justify-center px-6">
+          <div className="flex w-full max-w-[560px] flex-col items-center gap-6 text-center">
+            <div className="flex flex-col gap-3">
+              <h1 className="text-[24px] leading-[1.35] font-bold tracking-[-.008em] break-keep lg:text-[32px]">
+                {view.title}
+              </h1>
+              <p className="text-[14px] leading-[1.7] text-[#5C6B66] lg:text-[16px]">
+                {view.description}
+              </p>
+            </div>
+
+            {view.showExample && (
+              <div className="w-full rounded-[16px] border border-[rgba(38,51,47,0.14)] bg-white p-4 text-left">
+                <span className="text-[12px] font-bold text-[#7C8D87]">
+                  이렇게 입력해보세요
+                </span>
+                <p className="mt-1.5 text-[14px] leading-[1.7] lg:text-[15px]">
+                  {EXAMPLE_ROUTE_TEXT}
+                </p>
+              </div>
+            )}
+
+            <div className="flex flex-wrap justify-center gap-3">
+              {view.canRetry && (
+                <button
+                  onClick={handleRetry}
+                  className="rounded-full bg-[#E8623C] px-6 py-3 text-[14.5px] font-bold text-white"
+                >
+                  다시 시도
+                </button>
+              )}
+              <Link
+                href="/"
+                className={`rounded-full px-6 py-3 text-[14.5px] font-bold ${
+                  view.canRetry
+                    ? "border border-[rgba(38,51,47,0.28)]"
+                    : "bg-[#E8623C] text-white"
+                }`}
+              >
+                다시 입력하기
+              </Link>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (!course) {
     const isBuildingPhase = phaseText !== "주변 장소 찾는 중";
