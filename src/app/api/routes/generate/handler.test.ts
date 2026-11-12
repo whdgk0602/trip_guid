@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 import { createGenerateHandler, type GenerateDeps } from "./handler";
 import { UpstreamError } from "@/lib/server/llm";
 import { RouteResolveError } from "@/lib/server/resolveRoutePlaces";
+import { composeCourse } from "@/lib/server/courseText";
 
 const TEXT = "출근길에 대림역에서 2호선 갈아타고 강남역에서 내려요";
 const places = [
@@ -30,6 +31,7 @@ function handlerWith(overrides: Partial<GenerateDeps> = {}) {
   return createGenerateHandler({
     resolvePlaces: async () => places,
     buildSpots: async (_places, count) => spots(count),
+    writeCourse: async (p, s) => composeCourse(p, s, null),
     ...overrides,
   });
 }
@@ -76,6 +78,19 @@ describe("POST /api/routes/generate", () => {
     const response = await handlerWith({ buildSpots: async () => [] })(post({ text: TEXT }));
     expect(response.status).toBe(422);
     expect((await response.json()).error).toBe("NO_NEARBY_SPOTS");
+  });
+
+  test("uses the generated course text", async () => {
+    const writeCourse = vi.fn(async (_p: unknown, s: ReturnType<typeof spots>) => ({
+      title: "강바람 산책",
+      intro: "느긋한 퇴근길",
+      spots: s.map((spot) => ({ ...spot, description: "생성된 설명" })),
+    }));
+    const body = await (await handlerWith({ writeCourse })(post({ text: TEXT }))).json();
+
+    expect(writeCourse).toHaveBeenCalledWith(places, spots(3));
+    expect(body.title).toBe("강바람 산책");
+    expect(body.spots[0].description).toBe("생성된 설명");
   });
 
   test("includes the resolved places with coordinates", async () => {

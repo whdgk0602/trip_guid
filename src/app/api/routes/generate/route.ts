@@ -1,7 +1,13 @@
 import { unstable_cache } from "next/cache";
-import { buildSpots } from "@/lib/server/buildCourse";
+import { buildSpots, type Spot } from "@/lib/server/buildCourse";
+import {
+  composeCourse,
+  generateCourseText,
+  writeCourseWithFallback,
+  type Course,
+} from "@/lib/server/courseText";
 import { extractPlaceNames, extractWithFallback } from "@/lib/server/extractPlaceNames";
-import { geocodePlace, searchNearbyCandidates } from "@/lib/server/kakao";
+import { geocodePlace, searchNearbyCandidates, type GeoPlace } from "@/lib/server/kakao";
 import { parseModelList, UpstreamError } from "@/lib/server/llm";
 import { resolveRoutePlaces } from "@/lib/server/resolveRoutePlaces";
 import { ruleBasedPlaceNames } from "@/lib/server/ruleBasedPlaceNames";
@@ -31,6 +37,31 @@ const cachedLlmExtract = unstable_cache(
   { revalidate: EXTRACT_CACHE_SECONDS },
 );
 
+/**
+ * 같은 경로·같은 스팟 조합의 코스 텍스트 재사용 (NFR-5). 인자(places, spots)가 캐시 키에 포함되고,
+ * 형식이 안 맞는 응답은 generateCourseText가 throw하므로 캐시되지 않는다.
+ * 프롬프트를 바꾸면 키("v1")를 올릴 것.
+ */
+const cachedCourseText = unstable_cache(
+  async (places: GeoPlace[], spots: Spot[]) =>
+    generateCourseText(places, spots, {
+      apiKey: requireEnv("OPENROUTER_API_KEY"),
+      models: parseModelList(requireEnv("OPENROUTER_MODEL")),
+      maxTokens: 800,
+      // 출력이 지명 추출보다 길어서 모델당 제한 시간을 넉넉히
+      timeoutMs: 12_000,
+    }),
+  ["course-text-v1"],
+  { revalidate: EXTRACT_CACHE_SECONDS },
+);
+
+function writeCourse(places: GeoPlace[], spots: Spot[]): Promise<Course> {
+  if (!process.env.OPENROUTER_API_KEY) {
+    return Promise.resolve(composeCourse(places, spots, null));
+  }
+  return writeCourseWithFallback(places, spots, cachedCourseText);
+}
+
 function extract(text: string): Promise<string[]> {
   const normalized = text.replace(/\s+/g, " ").trim();
   // 키가 없으면(로컬에서 의도적으로 비운 경우 등) LLM을 건너뛰고 규칙 기반만 사용
@@ -54,4 +85,5 @@ export const POST = createGenerateHandler({
       search: (anchors, radius) => searchNearbyCandidates(anchors, radius, kakao),
     });
   },
+  writeCourse,
 });
