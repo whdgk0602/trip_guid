@@ -1,6 +1,11 @@
-import type { GeoPlace } from "./kakao";
+import { distanceKm, type GeoPlace } from "./kakao";
 
 const MAX_PLACES = 5;
+/**
+ * 직전 경로 지점에서 이보다 멀면 같은 이름의 다른 지역으로 보고 버린다
+ * (예: "돌담길" → 춘천). 일상 경로 한 구간이 30km를 넘는 경우는 드물다.
+ */
+export const MAX_HOP_KM = 30;
 
 export type RouteResolveErrorCode = "PLACE_NOT_FOUND" | "GEOCODE_FAILED";
 
@@ -51,8 +56,10 @@ export async function resolveRoutePlaces(
   const seen = new Set<string>();
   const places: GeoPlace[] = [];
   for (const name of names) {
-    const place = await geocode(name, places[places.length - 1]);
+    const previous = places[places.length - 1];
+    const place = await geocode(name, previous);
     if (!place) continue;
+    if (previous && distanceKm(previous, place) > MAX_HOP_KM) continue;
     const key = `${place.x.toFixed(4)},${place.y.toFixed(4)}`;
     if (seen.has(key)) continue;
     seen.add(key);

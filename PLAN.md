@@ -68,10 +68,18 @@ https://trip-guid.vercel.app — GitHub `main` 연동 자동 배포. 이후 API 
 - 모델 순서를 `ernie → gemma → nemotron`으로 변경 (2026-11-13 벤치마크: ernie 1.2~2.5s·4/5 정확, gemma 5/5 429, nemotron 정확하나 17~25s 지연 빈발). `.env.local`·Vercel 3개 환경 모두 반영
 - 알려진 한계: ernie가 빈 응답이면 ~10초까지 걸릴 수 있음, ernie는 preview 모델이라 중단 가능 (폴백으로 흡수). FR-4와 함께 캐싱(NFR-5) 검토
 
+### 3-1. LLM 한도 대응 — NFR-3/NFR-5 ✅ (2026-11-13)
+배포 직후 운영에서 전 요청 502 — 원인은 OpenRouter **계정 단위 무료 일일 한도**(`429 free-models-per-day`, 크레딧 미충전 계정). 개발 테스트와 운영이 같은 계정 한도를 나눠 씀. 크레딧 충전(B) 대신 코드로 대응(C):
+
+- [x] 지명 추출 캐시: `unstable_cache`로 같은 문장(공백 정규화) 결과 30일 재사용, 실패는 캐시 안 함. 프롬프트 변경 시 키(`extract-place-names-v1`) 버전 올릴 것
+- [x] 규칙 기반 비상 추출기(`ruleBasedPlaceNames`): LLM이 `UpstreamError`일 때만 사용 — "OO역/동/공원/길/궁/시장…" 접미사 + 조사 제거 + 불용어(출근길·운동·등산 등)
+- [x] `OPENROUTER_API_KEY`가 비어 있으면 LLM을 건너뜀 → 로컬 개발 시 키를 비워 운영 한도 보호 가능
+- [x] 경로 이탈 방지: 직전 지점에서 30km 넘게 떨어진 지오코딩 결과는 버림 ("돌담길" → 춘천 사례)
+- 확인: LLM 한도 소진 상태에서 로컬 e2e 4건 정상(0.2~0.7s). 캐시 적중은 LLM 복구 후 확인 필요
+
 ## 오늘 안 만들 기능 (다음 세션 이후)
 
-- FR-4 AI 제목/소개/스팟 설명 생성 — 다음 세션 1순위
-- 응답 캐싱 (NFR-5)
+- FR-4 AI 제목/소개/스팟 설명 생성 — 다음 세션 1순위 (LLM 호출이 요청당 1회 더 늘어나므로 캐시·폴백 템플릿 필수)
 - 갤러리 서버 저장소 이전 (FR-8) — 저장소(Vercel Postgres/KV, Supabase 등) 선택 필요
 - anonymousId 유실 안내 문구 (NFR-6)
 - AI 여행기 실제 LLM 연동, 체크인 사진 영속화 (P2)

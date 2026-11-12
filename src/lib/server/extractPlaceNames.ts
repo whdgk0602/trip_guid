@@ -1,6 +1,7 @@
 import {
   chatCompletion,
   parseJsonFromLlm,
+  UpstreamError,
   type ChatOptions,
 } from "./llm";
 import { normalizePlaceNames } from "./resolveRoutePlaces";
@@ -28,4 +29,22 @@ export async function extractPlaceNames(
     options,
   );
   return normalizePlaceNames(parseJsonFromLlm(content));
+}
+
+/**
+ * LLM 추출을 먼저 시도하고, LLM 자체가 쓸 수 없을 때(한도 초과·장애)만 규칙 기반으로 대체.
+ * LLM이 정상 응답으로 "장소 없음([])"을 준 경우는 그 판단을 그대로 따른다.
+ */
+export async function extractWithFallback(
+  text: string,
+  primary: (text: string) => Promise<string[]>,
+  fallback: (text: string) => string[],
+): Promise<string[]> {
+  try {
+    return await primary(text);
+  } catch (error) {
+    if (!(error instanceof UpstreamError)) throw error;
+    console.warn("[extract] LLM unavailable, using rule-based fallback:", error.message);
+    return fallback(text);
+  }
 }

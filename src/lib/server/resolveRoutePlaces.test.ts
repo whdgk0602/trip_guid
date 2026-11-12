@@ -65,6 +65,20 @@ describe("resolveRoutePlaces", () => {
     expect(result).toEqual([gangnam]);
   });
 
+  test("drops a place that lands far away from the previous route point", async () => {
+    const deoksugung = { query: "덕수궁", name: "덕수궁", address: "", x: 126.975, y: 37.565 };
+    const chuncheon = { query: "돌담길", name: "돌담길", address: "춘천", x: 127.73, y: 37.87 };
+    const jeongdong = { query: "정동길", name: "정동길", address: "", x: 126.972, y: 37.566 };
+
+    const result = await resolveRoutePlaces("덕수궁 돌담길 따라 정동길", {
+      extractPlaceNames: async () => ["덕수궁", "돌담길", "정동길"],
+      geocode: async (name) =>
+        ({ 덕수궁: deoksugung, 돌담길: chuncheon, 정동길: jeongdong })[name] ?? null,
+    });
+
+    expect(result.map((p) => p.query)).toEqual(["덕수궁", "정동길"]);
+  });
+
   test("drops duplicates that geocode to the same coordinates", async () => {
     const result = await resolveRoutePlaces("강남역 강남역 2호선", {
       extractPlaceNames: async () => ["강남역", "강남역 2호선"],

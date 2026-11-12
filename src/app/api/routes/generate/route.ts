@@ -1,9 +1,13 @@
+import { unstable_cache } from "next/cache";
 import { buildSpots } from "@/lib/server/buildCourse";
-import { extractPlaceNames } from "@/lib/server/extractPlaceNames";
+import { extractPlaceNames, extractWithFallback } from "@/lib/server/extractPlaceNames";
 import { geocodePlace, searchNearbyCandidates } from "@/lib/server/kakao";
 import { parseModelList, UpstreamError } from "@/lib/server/llm";
 import { resolveRoutePlaces } from "@/lib/server/resolveRoutePlaces";
+import { ruleBasedPlaceNames } from "@/lib/server/ruleBasedPlaceNames";
 import { createGenerateHandler } from "./handler";
+
+const EXTRACT_CACHE_SECONDS = 60 * 60 * 24 * 30;
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -11,15 +15,36 @@ function requireEnv(name: string): string {
   return value;
 }
 
+/**
+ * 같은 경로 문장의 LLM 지명 추출 결과를 30일간 재사용 (NFR-5).
+ * OpenRouter 무료 한도(계정당 일일 요청 수)를 아끼기 위함 — 결과는 Next.js 캐시에 저장돼
+ * 요청·배포를 넘어 유지되고, 실패(throw)는 캐시되지 않는다.
+ * 키 문자열("v1")은 프롬프트를 바꿀 때 올려서 이전 결과를 무효화.
+ */
+const cachedLlmExtract = unstable_cache(
+  async (normalizedText: string) =>
+    extractPlaceNames(normalizedText, {
+      apiKey: requireEnv("OPENROUTER_API_KEY"),
+      models: parseModelList(requireEnv("OPENROUTER_MODEL")),
+    }),
+  ["extract-place-names-v1"],
+  { revalidate: EXTRACT_CACHE_SECONDS },
+);
+
+function extract(text: string): Promise<string[]> {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  // 키가 없으면(로컬에서 의도적으로 비운 경우 등) LLM을 건너뛰고 규칙 기반만 사용
+  if (!process.env.OPENROUTER_API_KEY) {
+    return Promise.resolve(ruleBasedPlaceNames(normalized));
+  }
+  return extractWithFallback(normalized, cachedLlmExtract, ruleBasedPlaceNames);
+}
+
 export const POST = createGenerateHandler({
   resolvePlaces: (text) => {
     const kakao = { apiKey: requireEnv("KAKAO_REST_API_KEY") };
-    const llm = {
-      apiKey: requireEnv("OPENROUTER_API_KEY"),
-      models: parseModelList(requireEnv("OPENROUTER_MODEL")),
-    };
     return resolveRoutePlaces(text, {
-      extractPlaceNames: (input) => extractPlaceNames(input, llm),
+      extractPlaceNames: extract,
       geocode: (name, near) => geocodePlace(name, kakao, near),
     });
   },
