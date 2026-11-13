@@ -24,6 +24,22 @@ describe("requestAiTravelogue", () => {
     });
   });
 
+  test("never uploads check-in photos", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ travelogue: "t" }), { status: 200 }));
+
+    await requestAiTravelogue(
+      route,
+      [{ spotId: "a", note: "n", photo: "data:image/jpeg;base64,AAAA" }],
+      fetchFn,
+    );
+
+    expect(JSON.parse(fetchFn.mock.calls[0][1].body).checkins).toEqual([
+      { spotId: "a", note: "n" },
+    ]);
+  });
+
   test("returns null on HTTP error, network error, or empty text", async () => {
     expect(
       await requestAiTravelogue(route, checkins, vi.fn().mockResolvedValue(new Response("{}", { status: 502 }))),

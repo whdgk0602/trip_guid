@@ -18,7 +18,8 @@ export async function requestAiTravelogue(
       body: JSON.stringify({
         title: route.title,
         spots: route.spots.map((s) => ({ id: s.id, name: s.name, category: s.category })),
-        checkins,
+        // 사진(data URL)은 보내지 않음 — 여행기는 텍스트 기록만으로 쓰고, 요청 크기도 작게
+        checkins: checkins.map(({ spotId, note }) => ({ spotId, note })),
       }),
     });
     if (!response.ok) return null;

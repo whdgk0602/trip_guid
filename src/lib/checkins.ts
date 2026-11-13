@@ -1,6 +1,8 @@
 export type Checkin = {
   spotId: string;
   note: string;
+  /** 줄인 JPEG data URL (브라우저에만 저장). 저장 공간이 부족하면 빠질 수 있음 */
+  photo?: string;
 };
 
 type Spot = {
@@ -22,9 +24,10 @@ export function addCheckin(
   checkins: Checkin[],
   spotId: string,
   note: string,
+  photo?: string,
 ): Checkin[] {
   const withoutSpot = checkins.filter((c) => c.spotId !== spotId);
-  return [...withoutSpot, { spotId, note }];
+  return [...withoutSpot, photo ? { spotId, note, photo } : { spotId, note }];
 }
 
 export function isRouteComplete(spots: Spot[], checkins: Checkin[]): boolean {
@@ -73,6 +76,29 @@ export function persistCheckins(
   checkins: Checkin[],
 ): void {
   storage.setItem(checkinsKey(anonymousId, routeId), JSON.stringify(checkins));
+}
+
+/**
+ * 사진 포함 저장을 시도하고, localStorage 용량(보통 5MB)이 부족하면 방금 추가한 스팟의 사진만 빼고 다시 저장.
+ * 실제로 저장된 체크인 목록과 사진을 뺐는지 여부를 돌려준다.
+ */
+export function persistCheckinsWithPhotoFallback(
+  storage: Pick<CheckinStorage, "setItem">,
+  anonymousId: string,
+  routeId: string,
+  checkins: Checkin[],
+  latestSpotId: string,
+): { saved: Checkin[]; photoDropped: boolean } {
+  try {
+    persistCheckins(storage, anonymousId, routeId, checkins);
+    return { saved: checkins, photoDropped: false };
+  } catch {
+    const withoutPhoto = checkins.map((c) =>
+      c.spotId === latestSpotId ? { spotId: c.spotId, note: c.note } : c,
+    );
+    persistCheckins(storage, anonymousId, routeId, withoutPhoto);
+    return { saved: withoutPhoto, photoDropped: true };
+  }
 }
 
 export function loadTravelogue(

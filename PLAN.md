@@ -114,14 +114,17 @@ https://trip-guid.vercel.app — GitHub `main` 연동 자동 배포. 이후 API 
 - 프롬프트는 짧게 유지 (ernie 추론 시간). 시간 예산 12초. 실측 2.3~6.3초
 - 실패 시 기존 템플릿 여행기를 보여주되 **저장하지 않음** + "AI로 다시 만들기" 버튼. AI 결과만 localStorage에 저장
 - 등급(프리미엄)은 서버에서 검증 불가 — 앱 전체의 화면 단위 게이팅과 동일
-- [ ] 브라우저에서 생성 중/성공/대체 상태 육안 확인 (자동화 브라우저 응답 없음으로 미완)
+- [x] 브라우저 확인 (2026-11-13): 생성 중 버튼 문구 → AI 여행기 카드·저장 / API 실패 시 "여행기" 라벨 + 안내 + "AI로 다시 만들기", 저장 안 됨
 
-### 남은 과제 (P2·개선)
-- 체크인 사진 영속화
-- nemotron(3순위)이 20초대로 사실상 쓸모없음 → 대체 무료 모델 탐색
-- `docs/slices/`는 Phase 0 스펙 그대로 (갤러리 07번 등) — 필요 시 Phase 1 슬라이스 문서화
+### 7. 체크인 사진 저장 + 모델 교체 + 문서 정리 ✅ (2026-11-13)
+- [x] 체크인 사진: 브라우저에서 긴 변 640px·JPEG 0.7로 줄여 체크인과 함께 localStorage 저장. 저장 공간 부족(QuotaExceeded) 시 그 사진만 빼고 저장 + 안내. 여행기 API에는 사진을 보내지 않음
+  - 브라우저 확인: 1600×1200 이미지 → 미리보기 data URL, 체크인 후 새로고침해도 사진 유지
+- [x] 모델 순서 `particle-1 → apodex-1.1-mini → ernie → gemma-26b` (nemotron 제외). 코스 문구 측정: particle 3.7s(품질 최상), apodex 2.3s, nemotron-lightning 1.8s(구절체), dots 4.5s(사실 날조 ❌), flint 14.5s ❌, inkling 403, gemma-31b 429. 지명 추출: particle·apodex 0.6~1.7s 정확
+  - `.env.local`·`.env.example` 반영 / **Vercel `OPENROUTER_MODEL`은 아직 이전 순서** — 갱신 필요
+- [x] `docs/slices/` 02·07·09에 "Phase 1에서 대체됨" 표시, `10-phase1-real-apis.md` 신설
 
-## 오늘 안 만들 기능 (다음 세션 이후)
-- 갤러리 서버 저장소 이전 (FR-8) — 저장소(Vercel Postgres/KV, Supabase 등) 선택 필요
-- anonymousId 유실 안내 문구 (NFR-6)
-- AI 여행기 실제 LLM 연동, 체크인 사진 영속화 (P2)
+### 남은 과제
+PRD의 P0(MVP)와 P2(체크인·AI 여행기)는 모두 운영 반영됨. 선택 개선만 남음:
+- Vercel `OPENROUTER_MODEL`을 새 모델 순서로 갱신 (로컬·예시 파일은 반영됨)
+- 무료 모델 상황은 수시로 바뀜 → 주기적으로 모델 순서 재측정
+- 등급·여행기 API의 서버 측 검증 (현재 화면 단위 게이팅, 실제 결제 도입 시 필요)

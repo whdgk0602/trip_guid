@@ -1,5 +1,7 @@
 # 기능 7: 사용자가 갤러리에서 공개로 저장된 코스를 최신순으로 둘러볼 수 있다
 
+> ⚠️ **Phase 1에서 대체됨** — 갤러리는 이제 브라우저가 아니라 서버(Upstash Redis)의 모든 사용자 공개 코스를 보여줍니다. [`10-phase1-real-apis.md`](./10-phase1-real-apis.md) 참고.
+
 > PRD FR-8 · feature-spec.md 2.5. 코드 없음, 스펙만.
 
 ## 완료 조건

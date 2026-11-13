@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getOrCreateAnonymousId } from "@/lib/anonymousId";
 import { loadSavedRoutes, type SavedRoute } from "@/lib/savedRoutes";
+import { compressPhoto } from "@/lib/checkinPhoto";
 import { getTier, type Tier } from "@/lib/tier";
 import { requestAiTravelogue } from "@/lib/travelogueClient";
 import {
@@ -13,7 +14,7 @@ import {
   isRouteComplete,
   loadCheckins,
   loadTravelogue,
-  persistCheckins,
+  persistCheckinsWithPhotoFallback,
   persistTravelogue,
   type Checkin,
 } from "@/lib/checkins";
@@ -30,7 +31,9 @@ export default function CourseDetailPage() {
     "idle" | "generating" | "fallback"
   >("idle");
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
+  /** 체크인 전 미리보기 — 이미 줄인 JPEG data URL */
   const [draftPhotos, setDraftPhotos] = useState<Record<string, string>>({});
+  const [photoNotice, setPhotoNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const id = getOrCreateAnonymousId(localStorage);
@@ -47,19 +50,35 @@ export default function CourseDetailPage() {
     }
   }, [params.id]);
 
-  function handlePhotoChange(spotId: string, file: File | null) {
+  async function handlePhotoChange(spotId: string, file: File | null) {
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setDraftPhotos((prev) => ({ ...prev, [spotId]: url }));
+    const dataUrl = await compressPhoto(file);
+    if (!dataUrl) {
+      setPhotoNotice("이 사진은 읽을 수 없어요. 다른 사진을 골라주세요.");
+      return;
+    }
+    setPhotoNotice(null);
+    setDraftPhotos((prev) => ({ ...prev, [spotId]: dataUrl }));
   }
 
   function handleCheckin(spotId: string) {
     if (!route) return;
     const note = draftNotes[spotId]?.trim();
     if (!note) return;
-    const updated = addCheckin(checkins, spotId, note);
-    setCheckins(updated);
-    persistCheckins(localStorage, anonymousId, route.id, updated);
+    const updated = addCheckin(checkins, spotId, note, draftPhotos[spotId]);
+    const { saved, photoDropped } = persistCheckinsWithPhotoFallback(
+      localStorage,
+      anonymousId,
+      route.id,
+      updated,
+      spotId,
+    );
+    setCheckins(saved);
+    setPhotoNotice(
+      photoDropped
+        ? "브라우저 저장 공간이 부족해 이 사진은 저장하지 못했어요. 기록은 저장됐어요."
+        : null,
+    );
   }
 
   async function handleGenerateTravelogue() {
@@ -141,6 +160,12 @@ export default function CourseDetailPage() {
                 </div>
               </div>
 
+              {photoNotice && (
+                <p className="rounded-[10px] bg-[rgba(232,98,60,0.08)] px-4 py-3 text-[13px] leading-[1.7] text-[#8A5B45]">
+                  {photoNotice}
+                </p>
+              )}
+
               <div className="flex flex-col gap-3.5">
                 {route.spots.map((spot) => {
                   const checkin = checkins.find((c) => c.spotId === spot.id);
@@ -161,10 +186,10 @@ export default function CourseDetailPage() {
                             &ldquo;{checkin.note}&rdquo;
                           </span>
                         </div>
-                        {draftPhotos[spot.id] && (
-                          // eslint-disable-next-line @next/next/no-img-element -- session-only blob: preview, not a static asset
+                        {(checkin.photo ?? draftPhotos[spot.id]) && (
+                          // eslint-disable-next-line @next/next/no-img-element -- user photo as data: URL from localStorage, not a static asset
                           <img
-                            src={draftPhotos[spot.id]}
+                            src={checkin.photo ?? draftPhotos[spot.id]}
                             alt=""
                             className="h-[110px] w-[110px] flex-none rounded-[10px] border border-[rgba(38,51,47,0.1)] object-cover"
                           />
@@ -212,7 +237,7 @@ export default function CourseDetailPage() {
                           className="text-[13px]"
                         />
                         {draftPhotos[spot.id] && (
-                          // eslint-disable-next-line @next/next/no-img-element -- session-only blob: preview, not a static asset
+                          // eslint-disable-next-line @next/next/no-img-element -- compressed data: URL preview, not a static asset
                           <img
                             src={draftPhotos[spot.id]}
                             alt=""

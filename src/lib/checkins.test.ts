@@ -6,6 +6,7 @@ import {
   loadCheckins,
   loadTravelogue,
   persistCheckins,
+  persistCheckinsWithPhotoFallback,
   persistTravelogue,
 } from "./checkins";
 
@@ -128,5 +129,47 @@ describe("travelogue storage", () => {
     persistTravelogue(storage, "anon-1", "route-1", "여행기 내용");
 
     expect(loadTravelogue(storage, "anon-1", "route-1")).toBe("여행기 내용");
+  });
+});
+
+describe("check-in photos", () => {
+  test("addCheckin stores the photo only when given", () => {
+    expect(addCheckin([], "s1", "기록", "data:image/jpeg;base64,AAA")).toEqual([
+      { spotId: "s1", note: "기록", photo: "data:image/jpeg;base64,AAA" },
+    ]);
+    expect(addCheckin([], "s1", "기록")[0]).not.toHaveProperty("photo");
+  });
+
+  test("drops only the latest photo when storage is full", () => {
+    const writes: string[] = [];
+    let first = true;
+    const storage = {
+      setItem: (_k: string, v: string) => {
+        if (first) {
+          first = false;
+          throw new DOMException("quota", "QuotaExceededError");
+        }
+        writes.push(v);
+      },
+    };
+    const checkins = addCheckin(addCheckin([], "s1", "a", "data:old"), "s2", "b", "data:new");
+
+    const result = persistCheckinsWithPhotoFallback(storage, "anon", "r", checkins, "s2");
+
+    expect(result.photoDropped).toBe(true);
+    expect(result.saved).toEqual([
+      { spotId: "s1", note: "a", photo: "data:old" },
+      { spotId: "s2", note: "b" },
+    ]);
+    expect(JSON.parse(writes[0])).toEqual(result.saved);
+  });
+
+  test("saves photos as-is when there is room", () => {
+    const storage = { setItem: () => {} };
+    const checkins = addCheckin([], "s1", "a", "data:x");
+    expect(persistCheckinsWithPhotoFallback(storage, "anon", "r", checkins, "s1")).toEqual({
+      saved: checkins,
+      photoDropped: false,
+    });
   });
 });
