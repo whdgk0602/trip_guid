@@ -15,6 +15,12 @@ import { ruleBasedPlaceNames } from "@/lib/server/ruleBasedPlaceNames";
 import { createGenerateHandler } from "./handler";
 
 const EXTRACT_CACHE_SECONDS = 60 * 60 * 24 * 30;
+/**
+ * LLM 단계별 시간 예산. 넘기면 규칙 기반 추출 / 템플릿 문구로 마무리해 응답 시간을 묶는다
+ * (무료 모델 폴백이 순서대로 느려지면 최악 1분 가까이 걸리던 문제 — 2026-11-13 운영 22초 측정).
+ */
+const EXTRACT_BUDGET_MS = 8_000;
+const COURSE_TEXT_BUDGET_MS = 10_000;
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -33,6 +39,7 @@ const cachedLlmExtract = unstable_cache(
     extractPlaceNames(normalizedText, {
       apiKey: requireEnv("OPENROUTER_API_KEY"),
       models: parseModelList(requireEnv("OPENROUTER_MODEL")),
+      budgetMs: EXTRACT_BUDGET_MS,
     }),
   ["extract-place-names-v1"],
   { revalidate: EXTRACT_CACHE_SECONDS },
@@ -49,8 +56,9 @@ const cachedCourseText = unstable_cache(
       apiKey: requireEnv("OPENROUTER_API_KEY"),
       models: parseModelList(requireEnv("OPENROUTER_MODEL")),
       maxTokens: 800,
-      // 출력이 지명 추출보다 길어서 모델당 제한 시간을 넉넉히
-      timeoutMs: 12_000,
+      // ernie(1순위) 정상 응답이 ~6초 — 모델당 10초, 단계 전체도 10초를 넘기면 템플릿 문구로
+      timeoutMs: 10_000,
+      budgetMs: COURSE_TEXT_BUDGET_MS,
     }),
   ["course-text-v1"],
   { revalidate: EXTRACT_CACHE_SECONDS },

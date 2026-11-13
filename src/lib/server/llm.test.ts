@@ -94,6 +94,37 @@ describe("chatCompletion", () => {
     expect(bodyOf(fetchFn.mock.calls[1]).reasoning).toBeUndefined();
   });
 
+  test("gives reasoning-mandatory retries a larger token budget (reasoning eats ~1.3k tokens)", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(errorResponse(400, "Reasoning is mandatory for this endpoint."))
+      .mockResolvedValueOnce(okResponse("ok"));
+
+    await chatCompletion(MSG, { apiKey: "k", models: ["ernie"], maxTokens: 800, fetchFn });
+
+    expect(bodyOf(fetchFn.mock.calls[0]).max_tokens).toBe(800);
+    expect(bodyOf(fetchFn.mock.calls[1]).max_tokens).toBeGreaterThanOrEqual(3000);
+  });
+
+  test("stops trying further models once the time budget is spent", async () => {
+    let clock = 0;
+    const fetchFn = vi.fn(async () => {
+      clock += 9_500; // 느린 모델 하나가 예산을 거의 다 씀
+      return errorResponse(429);
+    });
+
+    await expect(
+      chatCompletion(MSG, {
+        apiKey: "k",
+        models: ["slow", "next", "last"],
+        budgetMs: 10_000,
+        now: () => clock,
+        fetchFn,
+      }),
+    ).rejects.toThrow(/time budget exhausted/);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
   test("throws UpstreamError when every model fails", async () => {
     const fetchFn = vi.fn().mockResolvedValue(errorResponse(429));
 

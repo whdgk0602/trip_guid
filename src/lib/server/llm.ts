@@ -1,6 +1,14 @@
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 /** 모델 하나당 제한 시간 — 무료 모델은 가끔 수십 초씩 걸려서 끊고 다음 모델로 */
 const PER_MODEL_TIMEOUT_MS = 8_000;
+/**
+ * 추론을 끌 수 없는 모델(ernie 등)은 답이 짧아도 추론에 1,000토큰 이상 쓴다.
+ * 이 모델에 일반 max_tokens(300~800)를 주면 추론만 하다 빈 응답으로 끝나서 재시도 시 한도를 올린다.
+ * (2026-11-13 측정: 코스 문구 1건에 추론 ~1,300토큰, 5.9초)
+ */
+const REASONING_MAX_TOKENS = 3_000;
+/** 남은 예산이 이보다 적으면 다음 모델을 시도하지 않음 */
+const MIN_ATTEMPT_MS = 1_000;
 
 export type FetchFn = typeof fetch;
 
@@ -20,7 +28,15 @@ export type ChatOptions = {
   models: string[];
   fetchFn?: FetchFn;
   maxTokens?: number;
+  /** 모델 하나당 제한 시간 */
   timeoutMs?: number;
+  /**
+   * 이 호출 전체(모든 모델 시도 합계)의 시간 예산. 넘으면 남은 모델을 건너뛰고 UpstreamError —
+   * 호출 측 폴백(규칙 기반 추출·템플릿 문구)으로 넘어가 응답 시간을 묶어 둔다.
+   */
+  budgetMs?: number;
+  /** 테스트용 시계 */
+  now?: () => number;
 };
 
 type Attempt =
@@ -31,7 +47,8 @@ async function tryModel(
   model: string,
   messages: ChatMessage[],
   disableReasoning: boolean,
-  { apiKey, fetchFn = fetch, maxTokens = 300, timeoutMs = PER_MODEL_TIMEOUT_MS }: ChatOptions,
+  { apiKey, fetchFn = fetch, maxTokens = 300 }: ChatOptions,
+  timeoutMs: number,
 ): Promise<Attempt> {
   let response: Response;
   try {
@@ -44,7 +61,7 @@ async function tryModel(
       body: JSON.stringify({
         model,
         messages,
-        max_tokens: maxTokens,
+        max_tokens: disableReasoning ? maxTokens : Math.max(maxTokens, REASONING_MAX_TOKENS),
         temperature: 0,
         // 추론형 모델(nemotron 등)이 max_tokens를 사고 과정에 다 써서 content가 null로
         // 끝나는 문제 방지. 단, 추론을 끌 수 없는 모델(ernie 등)은 400 → 빼고 재시도
@@ -81,11 +98,20 @@ export async function chatCompletion(
   messages: ChatMessage[],
   options: ChatOptions,
 ): Promise<string> {
+  const now = options.now ?? Date.now;
+  const perModel = options.timeoutMs ?? PER_MODEL_TIMEOUT_MS;
+  const deadline = options.budgetMs === undefined ? Infinity : now() + options.budgetMs;
+  const timeoutFor = () => Math.min(perModel, deadline - now());
+
   const failures: string[] = [];
   for (const model of options.models) {
-    let attempt = await tryModel(model, messages, true, options);
-    if (!attempt.ok && attempt.reasoningMandatory) {
-      attempt = await tryModel(model, messages, false, options);
+    if (timeoutFor() < MIN_ATTEMPT_MS) {
+      failures.push(`${model}: skipped (time budget exhausted)`);
+      continue;
+    }
+    let attempt = await tryModel(model, messages, true, options, timeoutFor());
+    if (!attempt.ok && attempt.reasoningMandatory && timeoutFor() >= MIN_ATTEMPT_MS) {
+      attempt = await tryModel(model, messages, false, options, timeoutFor());
     }
     if (attempt.ok) return attempt.content;
     failures.push(attempt.reason);
