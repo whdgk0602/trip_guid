@@ -60,7 +60,7 @@
 - **비공개 코스와 등급은 이 브라우저에만 저장됩니다.** 브라우저 데이터를 지우거나 다른 기기로 접속하면 접근할 수 없습니다. 공개 코스는 서버 갤러리에 남지만, `anonymousId`를 잃으면 더 이상 비공개로 돌릴 수 없습니다 (각 화면에 안내).
 - **AI 문구는 무료 모델 상황에 따라 템플릿으로 바뀔 수 있습니다.** 일일 한도가 소진되면 "OO에서 OO까지" 형태의 기본 문구가 나옵니다. 장소 큐레이션(카카오)은 영향을 받지 않습니다.
 - **프리미엄 결제는 실제로 이루어지지 않습니다.** "프리미엄 구매하기"는 등급 전환 UX를 시연하기 위한 가짜 결제 플로우입니다. `/plan`의 "무료로 되돌리기"는 데모 편의 기능입니다.
-- **체크인 여행기는 아직 템플릿 조합입니다.** 체크인 기록을 엮는 결정론적 함수이며, LLM 연동은 이후 과제입니다. 체크인 사진도 저장되지 않습니다(새로고침 시 사라짐).
+- **체크인 사진은 저장되지 않습니다**(새로고침 시 사라짐). 여행기는 체크인 기록을 바탕으로 AI가 쓰며, AI를 쓸 수 없을 때는 기록을 엮은 기본 여행기를 보여주고 다시 시도할 수 있습니다.
 - **공유 카드 이미지 저장이 드물게 실패할 수 있습니다.** `html-to-image` 기반 PNG 변환이 간헐적으로 멈추는 알려진 이슈가 있어, 8초 타임아웃 후 재시도할 수 있게 처리했습니다.
 
 ## 시작하기
@@ -97,7 +97,8 @@ src/
 │  ├─ plan/page.tsx              # 등급 비교 · 가짜 결제 플로우
 │  └─ api/
 │     ├─ routes/generate/        # POST 코스 생성 (handler.ts 로직 / route.ts 연결)
-│     └─ gallery/                # GET 목록, PUT·DELETE /[id] 게시·삭제
+│     ├─ gallery/                # GET 목록, PUT·DELETE /[id] 게시·삭제
+     └─ travelogue/             # POST 체크인 여행기
 └─ lib/
    ├─ anonymousId.ts · savedRoutes.ts · tier.ts · checkins.ts   # 브라우저 저장소 로직
    ├─ galleryClient.ts           # 갤러리 게시·삭제·동기화 클라이언트
@@ -109,6 +110,7 @@ src/
       ├─ resolveRoutePlaces.ts   # 지명 → 경로 좌표 (근접 보정·이탈 제거)
       ├─ curateSpots.ts · buildCourse.ts   # 스팟 선정, 반경 확대
       ├─ courseText.ts           # 코스 제목·소개·설명 생성 + 검증 + 템플릿 폴백
+      ├─ travelogue.ts           # 체크인 기록 → AI 여행기
       ├─ courseSignature.ts      # HMAC 서명/검증
       └─ gallery.ts · galleryStore.ts      # 게시 규칙, Upstash REST 저장소
 

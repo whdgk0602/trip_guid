@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { getOrCreateAnonymousId } from "@/lib/anonymousId";
 import { loadSavedRoutes, type SavedRoute } from "@/lib/savedRoutes";
 import { getTier, type Tier } from "@/lib/tier";
+import { requestAiTravelogue } from "@/lib/travelogueClient";
 import {
   addCheckin,
   buildTravelogue,
@@ -24,6 +25,10 @@ export default function CourseDetailPage() {
   const [route, setRoute] = useState<SavedRoute | null>(null);
   const [checkins, setCheckins] = useState<Checkin[]>([]);
   const [travelogue, setTravelogue] = useState<string | null>(null);
+  /** generating: AI 요청 중 / fallback: AI 실패로 템플릿을 보여주는 중 (저장 안 함 → 다시 시도 가능) */
+  const [travelogueStatus, setTravelogueStatus] = useState<
+    "idle" | "generating" | "fallback"
+  >("idle");
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
   const [draftPhotos, setDraftPhotos] = useState<Record<string, string>>({});
 
@@ -57,11 +62,19 @@ export default function CourseDetailPage() {
     persistCheckins(localStorage, anonymousId, route.id, updated);
   }
 
-  function handleGenerateTravelogue() {
-    if (!route) return;
-    const text = buildTravelogue(route.title, route.spots, checkins);
-    setTravelogue(text);
-    persistTravelogue(localStorage, anonymousId, route.id, text);
+  async function handleGenerateTravelogue() {
+    if (!route || travelogueStatus === "generating") return;
+    setTravelogueStatus("generating");
+    const aiText = await requestAiTravelogue(route, checkins);
+    if (aiText) {
+      setTravelogue(aiText);
+      persistTravelogue(localStorage, anonymousId, route.id, aiText);
+      setTravelogueStatus("idle");
+    } else {
+      // AI를 쓸 수 없을 때는 기록을 엮은 기본 여행기를 보여주되 저장하지 않아, 나중에 다시 시도할 수 있게
+      setTravelogue(buildTravelogue(route.title, route.spots, checkins));
+      setTravelogueStatus("fallback");
+    }
   }
 
   if (!route) {
@@ -218,23 +231,38 @@ export default function CourseDetailPage() {
                 })}
               </div>
 
-              {travelogue ? (
+              {travelogue && travelogueStatus !== "generating" ? (
                 <div className="flex flex-col gap-4 rounded-2xl bg-[#16332E] p-8 text-[#F2FAF6]">
                   <span className="font-archivo text-[11px] tracking-[.28em] text-[#3FBFA3] uppercase">
-                    AI 여행기
+                    {travelogueStatus === "fallback" ? "여행기" : "AI 여행기"}
                   </span>
                   <p className="text-[16px] leading-[2.1] whitespace-pre-line text-[#C7DAD3]">
                     {travelogue}
                   </p>
+                  {travelogueStatus === "fallback" && (
+                    <div className="flex flex-wrap items-center gap-3 border-t border-[rgba(242,250,246,0.14)] pt-4">
+                      <span className="text-[13px] text-[#9EB4AD]">
+                        지금은 AI가 바빠서 기록을 엮은 기본 여행기를 보여드려요.
+                      </span>
+                      <button
+                        onClick={handleGenerateTravelogue}
+                        className="rounded-full border border-[rgba(242,250,246,0.4)] px-4 py-2 text-[13px] font-bold"
+                      >
+                        AI로 다시 만들기
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center gap-[18px]">
                   <button
                     onClick={handleGenerateTravelogue}
-                    disabled={!complete}
+                    disabled={!complete || travelogueStatus === "generating"}
                     className="rounded-[14px] bg-[#E8623C] px-9 py-[18px] text-[16.5px] font-bold text-white disabled:opacity-40"
                   >
-                    여행기 생성하기
+                    {travelogueStatus === "generating"
+                      ? "여행기를 쓰는 중이에요…"
+                      : "여행기 생성하기"}
                   </button>
                   <span className="text-[14px] text-[#8D9A95]">
                     {complete
