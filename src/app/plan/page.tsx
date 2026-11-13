@@ -188,6 +188,11 @@ export default function PlanPage() {
             <p className="text-[13px] font-bold text-[#5C6B66]">
               현재 등급: {tier === "premium" ? "프리미엄" : "무료"}
             </p>
+            <p className="max-w-[560px] rounded-[10px] bg-[rgba(232,98,60,0.08)] px-4 py-3 text-[13px] leading-[1.7] text-[#8A5B45]">
+              등급은 로그인 없이 이 브라우저에만 기록돼요. 브라우저 데이터를
+              지우거나 기기를 바꾸면 무료 등급으로 돌아가고, 저장한 코스에도
+              접근할 수 없어요.
+            </p>
           </div>
 
           <div className="flex flex-col">

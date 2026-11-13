@@ -48,7 +48,7 @@ const cachedLlmExtract = unstable_cache(
 /**
  * 같은 경로·같은 스팟 조합의 코스 텍스트 재사용 (NFR-5). 인자(places, spots)가 캐시 키에 포함되고,
  * 형식이 안 맞는 응답은 generateCourseText가 throw하므로 캐시되지 않는다.
- * 프롬프트를 바꾸면 키("v1")를 올릴 것.
+ * 프롬프트를 바꾸면 키 버전을 올릴 것 (v2: 해요체·이름 기반 메뉴 추측 금지, 2026-11-13).
  */
 const cachedCourseText = unstable_cache(
   async (places: GeoPlace[], spots: Spot[]) =>
@@ -60,7 +60,7 @@ const cachedCourseText = unstable_cache(
       timeoutMs: 10_000,
       budgetMs: COURSE_TEXT_BUDGET_MS,
     }),
-  ["course-text-v1"],
+  ["course-text-v2"],
   { revalidate: EXTRACT_CACHE_SECONDS },
 );
 

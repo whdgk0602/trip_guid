@@ -109,7 +109,8 @@ export default function MyPage() {
                   </h1>
                   <p className="text-[13.5px] text-[#8B9A94] lg:text-[14px]">
                     이 기기에만 저장된 목록입니다. 브라우저 데이터를 지우면
-                    복구할 수 없어요.
+                    복구할 수 없고, 공개한 코스도 더 이상 비공개로 돌릴 수
+                    없어요.
                   </p>
                 </div>
                 <div className="flex gap-2.5">

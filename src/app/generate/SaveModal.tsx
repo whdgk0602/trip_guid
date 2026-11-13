@@ -90,6 +90,8 @@ export default function SaveModal({
             <p className="mt-[22px] rounded-xl bg-[rgba(232,98,60,0.08)] px-[17px] py-[15px] text-[13px] leading-[1.7] text-[#8A5B45]">
               로그인 없이 이 브라우저에 저장돼요. 브라우저 데이터를 지우거나
               기기를 바꾸면 코스에 접근할 수 없습니다.
+              {visibility === "public" &&
+                " 이때 공개한 코스는 갤러리에 남지만, 직접 비공개로 돌릴 수는 없게 돼요."}
             </p>
 
             <div className="mt-[22px] flex justify-end gap-3">
