@@ -95,7 +95,11 @@ https://trip-guid.vercel.app — GitHub `main` 연동 자동 배포. 이후 API 
 - 서명 도입 전에 저장한 코스는 서명이 없어 갤러리에 안 올라감 (이 브라우저에만 남음)
 - 로컬: Upstash 환경변수가 없으면 **개발 서버에서만** 메모리 저장소, 운영은 502
 - [x] 로컬 e2e: 생성→공개 저장→갤러리 노출→비공개 전환→갤러리에서 사라짐, 위조 403, 타인 삭제 403
-- [ ] Vercel에 Upstash Redis 연결 + `GALLERY_SIGNING_SECRET` 등록 → push → 운영 확인
+- [x] Vercel에 Upstash Redis(`upstash-kv-violet-bridge`, Production·Preview) 연결 + `GALLERY_SIGNING_SECRET` 등록 → push → 운영 확인 (2026-11-13): 공개 저장 → 갤러리·외부 API 조회에 노출 → 비공개 전환 → 사라짐, 위조 403
+
+### 다음 할 일 (운영 확인 중 발견)
+- [ ] **생성 응답 시간**: AI 문구 활성화 후 운영 1회 22초 (브라우저 체감 10~18초). 원인 모델·단계 확인 필요 — 모델당 타임아웃 합계가 길어 최악 ~60초 가능 (추출 8s×3 + 문구 12s×3). 전체 시간 예산(deadline) 도입 검토
+- [ ] **AI 문구 톤**: 사실 날조는 없음. 다만 "~합니다/~봅니다" 서술형이라 밋밋함 ("식당에서 식사를 합니다") → 프롬프트 개선 시 캐시 키 `course-text-v2`
 
 ## 오늘 안 만들 기능 (다음 세션 이후)
 - 갤러리 서버 저장소 이전 (FR-8) — 저장소(Vercel Postgres/KV, Supabase 등) 선택 필요
